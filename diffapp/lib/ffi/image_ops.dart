@@ -64,14 +64,19 @@ class DartImageOps implements ImageOps {
 /// FFI 実装の土台。現時点ではDart実装にフォールバックする。
 class FfiImageOps implements ImageOps {
   final DartImageOps _fallback = DartImageOps();
-  FfiImageOps() {
+  final ImageOpsNative? _native;
+
+  FfiImageOps({ImageOpsNative? native}) : _native = native {
     // Native availability check deferred until actual integration.
     NativeBindings.available();
   }
 
   @override
   List<int> rgbToGrayscaleU8(List<int> rgb, int width, int height) {
-    // ネイティブが利用可能なら将来そちらを使用。現在は常にフォールバック。
+    final n = _native;
+    if (n != null && n.isAvailable) {
+      return n.rgbToGrayscaleU8(rgb, width, height);
+    }
     return _fallback.rgbToGrayscaleU8(rgb, width, height);
   }
 
