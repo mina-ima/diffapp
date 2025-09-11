@@ -15,12 +15,12 @@
 - [x] Android の applicationId を設定（既定: dev.minamidenshiimanaka.diffapp。CIで自動生成）
 - [x] `flutter_lints` を追加し lint を CI に組込（`analysis_options.yaml` 設定済み）
 - [x] README にセットアップ手順を記載
-- [ ] GitHub Actions で CI（lint / test / build）を設定
+- [x] GitHub Actions で CI（lint / test / build）を設定
   - [x] analyze（lint）実行を追加
   - [x] test 実行を追加
   - [x] build 実行を追加（Android debug／プラットフォームが無ければ CI が `flutter create --org dev.minamidenshiimanaka .` 実行）
   - [x] iOS シミュレータ用ビルド（no codesign）を追加（macOS ランナー）
-  - [ ] 署名付き iOS/Android リリースビルドを追加
+  - [x] 署名付き iOS/Android リリースビルドを追加（Secrets がある場合のみ実行）
 
 ---
 

@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('CI に署名付きリリース用ジョブが定義されている', () async {
     // リポジトリルートのワークフロー定義を読む（テストのCWDは diffapp/）
-    final path = '../.github/workflows/flutter-ci.yml';
+    const path = '../.github/workflows/flutter-ci.yml';
     final file = File(path);
     expect(file.existsSync(), isTrue, reason: 'flutter-ci.yml が存在すること');
 
@@ -26,4 +26,3 @@ void main() {
     );
   });
 }
-
