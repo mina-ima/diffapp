@@ -122,3 +122,19 @@ class MockCnnDetector implements CnnDetector {
   }
 }
 
+/// FFI Detector 土台。現状は Mock にフォールバック。
+class FfiCnnDetector implements CnnDetector {
+  final MockCnnDetector _fallback = MockCnnDetector();
+
+  @override
+  bool get isLoaded => _fallback.isLoaded;
+
+  @override
+  Future<void> load(Uint8List modelData) => _fallback.load(modelData);
+
+  @override
+  List<Detection> detectFromDiffMap(List<double> diffMap, int width, int height,
+          {required Settings settings, int maxOutputs = 20, double iouThreshold = 0.5}) =>
+      _fallback.detectFromDiffMap(diffMap, width, height,
+          settings: settings, maxOutputs: maxOutputs, iouThreshold: iouThreshold);
+}
