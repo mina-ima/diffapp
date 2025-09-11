@@ -29,6 +29,16 @@ class _ComparePageState extends State<ComparePage> {
     );
   }
 
+  void _reset() {
+    setState(() {
+      _leftRect = null;
+      _rightRect = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('最初からやりなおします')),
+    );
+  }
+
   Future<void> _selectRect() async {
     final result = await Navigator.of(context).push<IntRect>(
       MaterialPageRoute(
@@ -120,6 +130,15 @@ class _ComparePageState extends State<ComparePage> {
               child: Text(
                 'スクショをとろう！',
                 textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton.icon(
+                onPressed: _reset,
+                icon: const Icon(Icons.refresh),
+                label: const Text('再比較'),
               ),
             ),
           ],

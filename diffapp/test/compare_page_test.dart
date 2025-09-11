@@ -16,5 +16,21 @@ void main() {
 
     expect(find.text('スクショをとろう！'), findsOneWidget);
   });
-}
 
+  testWidgets('再比較ボタンを押すと案内SnackBarが出る', (tester) async {
+    const left = SelectedImage(label: 'L', width: 4000, height: 3000);
+    const right = SelectedImage(label: 'R', width: 1920, height: 1080);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ComparePage(left: left, right: right),
+      ),
+    );
+
+    expect(find.text('再比較'), findsOneWidget);
+    await tester.tap(find.text('再比較'));
+    await tester.pump();
+
+    expect(find.text('最初からやりなおします'), findsOneWidget);
+  });
+}
