@@ -9,6 +9,8 @@ class ComparePage extends StatefulWidget {
   final SelectedImage right;
   final IntRect? initialLeftRect;
   final IntRect? initialRightRect;
+  // テスト・デモ用のフック：モデル読込失敗をシミュレート
+  final bool simulateModelLoadFailure;
 
   const ComparePage({
     super.key,
@@ -16,6 +18,7 @@ class ComparePage extends StatefulWidget {
     required this.right,
     this.initialLeftRect,
     this.initialRightRect,
+    this.simulateModelLoadFailure = false,
   });
 
   @override
@@ -34,6 +37,14 @@ class _ComparePageState extends State<ComparePage>
   void _startDetection(BuildContext context) {
     // 効果音
     Sfx.instance.play('start');
+    // モデル読込失敗をシミュレート（テスト用）
+    if (widget.simulateModelLoadFailure) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('けんさに しっぱいしました。もういちどためしてね')),
+      );
+      return;
+    }
+
     // いまはダミー検出：常にゼロ件とする
     final List<IntRect> results = <IntRect>[];
     if (results.isEmpty) {
