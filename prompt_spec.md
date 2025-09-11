@@ -87,6 +87,7 @@ AIモデル	TensorFlow Lite（CNN）	形・文字認識補強
 4. アーキテクチャ設計
 	•	フロント層：Flutter UI
 	•	処理層：Dart → FFI経由でC++（OpenCV / TFLite）呼び出し
+		- 現状: FFI土台を用意し、Dart実装にフォールバック（`ffi/image_ops.dart`, `FfiCnnDetector`）
 	•	データ層：端末内キャッシュ（メモリor一時ディレクトリ）
 	•	依存関係管理：Flutter pub + CMake連携
 
