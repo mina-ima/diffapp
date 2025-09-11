@@ -34,13 +34,17 @@ class _ComparePageState extends State<ComparePage>
   void _startDetection(BuildContext context) {
     // 効果音
     Sfx.instance.play('start');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '検出は未実装（ダミー） 左:${_leftRect ?? '未指定'} / 右:${_rightRect ?? '未指定'}',
-        ),
-      ),
-    );
+    // いまはダミー検出：常にゼロ件とする
+    final List<IntRect> results = <IntRect>[];
+    if (results.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ちがいは みつかりませんでした')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('検出数: ${results.length}')),
+      );
+    }
   }
 
   void _reset() {
