@@ -51,6 +51,7 @@
 - [ ] Dart ↔ C++ FFI 実装
   - [x] Dart 側のFFI土台（フォールバック実装）
   - [x] グレースケール変換のC++サンプル関数とAndroid NDK/CMake設定（Dartからはフォールバックで動作確認）
+  - [x] `FfiImageOps` がネイティブ実装を優先使用できる注入機構を追加（単体テストを実装）
   - [ ] OpenCV サンプル関数を Dart から呼び出す
   - [ ] TFLite 推論を Dart から呼び出す
 

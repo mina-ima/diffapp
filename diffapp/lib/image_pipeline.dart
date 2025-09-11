@@ -226,6 +226,84 @@ Point2 applySimilarityTransform(Point2 p, SimilarityTransform t) {
   return Point2(x, y);
 }
 
+/// RANSAC による相似変換のロバスト推定結果。
+class RansacSimResult {
+  final SimilarityTransform transform;
+  final int inliersCount;
+  const RansacSimResult(this.transform, this.inliersCount);
+
+  @override
+  String toString() => 'RansacSimResult(inliers:$inliersCount, $transform)';
+}
+
+/// RANSAC を用いて外れ値に頑健な相似変換（スケール+回転+並進）を推定する。
+/// - [src], [dst] は同数、2点以上。
+/// - [iterations] 回だけ 2点サンプルから仮推定 → 全体で誤差評価 → ベストを採用。
+/// - [inlierThreshold] はピクセル誤差（L2距離）の閾値。
+/// - ベストインライアで再推定して返す。
+RansacSimResult estimateSimilarityTransformRansac(
+  List<Point2> src,
+  List<Point2> dst, {
+  int iterations = 200,
+  double inlierThreshold = 2.0,
+  int? minInliers,
+}) {
+  if (src.length != dst.length) {
+    throw ArgumentError('src and dst must have same length');
+  }
+  if (src.length < 2) {
+    throw ArgumentError('at least 2 point correspondences required');
+  }
+  final n = src.length;
+  if (minInliers != null && (minInliers < 2 || minInliers > n)) {
+    throw ArgumentError('minInliers must be in [2, $n]');
+  }
+  int bestCount = -1;
+  List<int> bestInliers = const [];
+
+  double sqr(double v) => v * v;
+  double err(Point2 a, Point2 b) => math.sqrt(sqr(a.x - b.x) + sqr(a.y - b.y));
+
+  final rng = math.Random(12345);
+  for (var it = 0; it < iterations; it++) {
+    // ランダムに2点を選ぶ（重複なし）
+    final i = rng.nextInt(n);
+    var j = rng.nextInt(n - 1);
+    if (j >= i) j++; // ensure j != i
+
+    SimilarityTransform t;
+    try {
+      t = estimateSimilarityTransform([src[i], src[j]], [dst[i], dst[j]]);
+    } catch (_) {
+      continue; // 退化ケースはスキップ
+    }
+
+    final current = <int>[];
+    for (var k = 0; k < n; k++) {
+      final p = applySimilarityTransform(src[k], t);
+      if (err(p, dst[k]) <= inlierThreshold) current.add(k);
+    }
+    if (current.length > bestCount) {
+      bestCount = current.length;
+      bestInliers = current;
+    }
+  }
+
+  if (bestInliers.isEmpty) {
+    // すべて失敗。最小二乗で投げるよりは、単純推定で例外に委ねる。
+    throw StateError('RANSAC failed to find a valid model');
+  }
+  if (minInliers != null && bestInliers.length < minInliers) {
+    throw StateError('Not enough inliers: ${bestInliers.length} < $minInliers');
+  }
+
+  // ベストインライア集合で再推定
+  final inSrc = [for (final idx in bestInliers) src[idx]];
+  final inDst = [for (final idx in bestInliers) dst[idx]];
+  final refined = estimateSimilarityTransform(inSrc, inDst);
+  return RansacSimResult(refined, bestInliers.length);
+}
+
 /// Apply simple auto-contrast on 8-bit grayscale values when [enabled] is true.
 /// - Input: list of ints 0..255
 /// - Behavior: if enabled, linearly stretch [min..max] to [0..255].
