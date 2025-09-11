@@ -352,3 +352,99 @@ List<double> normalizeToUnit(List<double> values) {
   }
   return values.map((v) => (v - minV) / range).toList();
 }
+
+// -----------------------------
+// Thresholding & Connected Components
+// -----------------------------
+
+/// Threshold a list of doubles to 0/1 using [threshold].
+/// Values >= threshold become 1, otherwise 0.
+List<int> thresholdBinary(List<double> values, double threshold) {
+  return values.map((v) => v >= threshold ? 1 : 0).toList();
+}
+
+/// Find connected components' bounding boxes in a binary image (0/1).
+/// - [binary] length must be width*height.
+/// - [eightConnected] chooses 8-connected (true) or 4-connected (false) neighbors.
+/// - Filters out components with area < [minArea].
+List<IntRect> connectedComponentsBoundingBoxes(
+  List<int> binary,
+  int width,
+  int height, {
+  bool eightConnected = true,
+  int minArea = 1,
+}) {
+  if (width <= 0 || height <= 0) {
+    throw ArgumentError('width and height must be positive');
+  }
+  if (binary.length != width * height) {
+    throw ArgumentError('binary length must equal width*height');
+  }
+  final visited = List<bool>.filled(binary.length, false);
+  final boxes = <IntRect>[];
+
+  const dirs4 = [
+    (0, 1),
+    (1, 0),
+    (0, -1),
+    (-1, 0),
+  ];
+  const dirs8 = [
+    (0, 1),
+    (1, 0),
+    (0, -1),
+    (-1, 0),
+    (1, 1),
+    (1, -1),
+    (-1, 1),
+    (-1, -1),
+  ];
+  final dirs = eightConnected ? dirs8 : dirs4;
+
+  int idxOf(int x, int y) => y * width + x;
+
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
+      final startIdx = idxOf(x, y);
+      if (binary[startIdx] == 0 || visited[startIdx]) continue;
+
+      // BFS/DFS stack
+      final stack = <(int, int)>[(x, y)];
+      visited[startIdx] = true;
+
+      var minX = x, maxX = x, minY = y, maxY = y;
+      var area = 0;
+
+      while (stack.isNotEmpty) {
+        final (cx, cy) = stack.removeLast();
+        area++;
+        if (cx < minX) minX = cx;
+        if (cx > maxX) maxX = cx;
+        if (cy < minY) minY = cy;
+        if (cy > maxY) maxY = cy;
+
+        for (final (dx, dy) in dirs) {
+          final nx = cx + dx;
+          final ny = cy + dy;
+          if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+          final nIdx = idxOf(nx, ny);
+          if (visited[nIdx]) continue;
+          if (binary[nIdx] == 0) continue;
+          visited[nIdx] = true;
+          stack.add((nx, ny));
+        }
+      }
+
+      if (area >= minArea) {
+        boxes.add(IntRect(
+          left: minX,
+          top: minY,
+          width: maxX - minX + 1,
+          height: maxY - minY + 1,
+        ));
+      }
+    }
+  }
+
+  return boxes;
+}
