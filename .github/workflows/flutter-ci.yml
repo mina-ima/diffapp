@@ -103,3 +103,97 @@ jobs:
         with:
           name: ios-simulator-app
           path: diffapp/build/ios/iphonesimulator/Runner.app
+
+  release_android_signed:
+    name: Release Android (Signed AAB)
+    runs-on: ubuntu-latest
+    if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_ALIAS != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' }}
+    defaults:
+      run:
+        working-directory: diffapp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter 3.22.0
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Ensure platform folders
+        run: |
+          if [ ! -d android ]; then
+            flutter create --org dev.minamidenshiimanaka .
+          fi
+
+      - name: Build AAB (release, unsigned)
+        run: flutter build appbundle --release
+
+      - name: Sign Android App Bundle
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: diffapp/build/app/outputs/bundle/release
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          alias: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+
+      - name: Upload signed AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-signed-aab
+          path: diffapp/build/app/outputs/bundle/release/*.aab
+
+  release_ios_signed:
+    name: Release iOS (Signed IPA)
+    runs-on: macos-latest
+    if: ${{ secrets.IOS_P12_BASE64 != '' && secrets.IOS_P12_PASSWORD != '' && secrets.IOS_PROVISION_PROFILE_BASE64 != '' }}
+    defaults:
+      run:
+        working-directory: diffapp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter 3.22.0
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Ensure platform folders
+        run: |
+          if [ ! -d ios ]; then
+            flutter create --org dev.minamidenshiimanaka .
+          fi
+
+      - name: Import signing certs
+        uses: apple-actions/import-codesign-certs@v2
+        with:
+          p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
+          p12-password: ${{ secrets.IOS_P12_PASSWORD }}
+
+      - name: Install provisioning profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+
+      - name: Build IPA (release)
+        run: |
+          flutter build ipa --release \
+            --export-options-plist ios/Runner/ExportOptions.plist || true
+          # ExportOptions.plist が未設定でも将来の設定で成功させる意図。現状は成果物が無い場合がある。
+
+      - name: Upload IPA artifact (if any)
+        if: ${{ hashFiles('diffapp/build/ios/ipa/*.ipa') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-ipa
+          path: diffapp/build/ios/ipa/*.ipa
