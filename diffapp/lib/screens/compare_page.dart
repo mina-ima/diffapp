@@ -115,6 +115,13 @@ class _ComparePageState extends State<ComparePage> {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            const Center(
+              child: Text(
+                'スクショをとろう！',
+                textAlign: TextAlign.center,
+              ),
+            ),
           ],
         ),
       ),
