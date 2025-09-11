@@ -2,3 +2,6 @@
 /.fvm/flutter_sdk
 /diffapp/.fvm/flutter_sdk
 
+# Flutter build outputs
+/diffapp/build/
+/diffapp/.dart_tool/

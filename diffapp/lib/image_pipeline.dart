@@ -111,6 +111,37 @@ class IntRect {
   int get hashCode => Object.hash(left, top, width, height);
 }
 
+/// Apply simple auto-contrast on 8-bit grayscale values when [enabled] is true.
+/// - Input: list of ints 0..255
+/// - Behavior: if enabled, linearly stretch [min..max] to [0..255].
+///   If min==max, returns a copy of the original values.
+/// - If disabled, returns a copy of [values] unchanged.
+List<int> applyAutoContrastIfEnabled(List<int> values, {required bool enabled}) {
+  final out = List<int>.from(values);
+  if (!enabled) return out;
+  if (out.isEmpty) return out;
+
+  int minV = 255;
+  int maxV = 0;
+  for (final v in out) {
+    if (v < 0 || v > 255) {
+      throw ArgumentError('values must be within 0..255');
+    }
+    if (v < minV) minV = v;
+    if (v > maxV) maxV = v;
+  }
+  if (minV == maxV) {
+    return out; // nothing to stretch
+  }
+  final range = (maxV - minV).toDouble();
+  for (var i = 0; i < out.length; i++) {
+    final v = out[i];
+    final stretched = ((v - minV) * 255.0 / range).round();
+    out[i] = stretched.clamp(0, 255);
+  }
+  return out;
+}
+
 /// Scale a rectangle defined on the original image to the resized image space.
 /// Uses the same scale factor as [calculateResizeDimensions].
 IntRect scaleRectForResizedImage(
