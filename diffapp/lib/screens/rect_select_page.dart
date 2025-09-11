@@ -29,8 +29,7 @@ class _RectSelectPageState extends State<RectSelectPage> {
   @override
   void initState() {
     super.initState();
-    _rect =
-        widget.initialRect ??
+    _rect = widget.initialRect ??
         const IntRect(left: 100, top: 80, width: 300, height: 200);
   }
 

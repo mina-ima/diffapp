@@ -7,8 +7,16 @@ import 'package:diffapp/sound_effects.dart';
 class ComparePage extends StatefulWidget {
   final SelectedImage left;
   final SelectedImage right;
+  final IntRect? initialLeftRect;
+  final IntRect? initialRightRect;
 
-  const ComparePage({super.key, required this.left, required this.right});
+  const ComparePage({
+    super.key,
+    required this.left,
+    required this.right,
+    this.initialLeftRect,
+    this.initialRightRect,
+  });
 
   @override
   State<ComparePage> createState() => _ComparePageState();
@@ -174,6 +182,9 @@ class _ComparePageState extends State<ComparePage>
       widget.right.height,
       targetMaxWidth: 1280,
     );
+    // 初期矩形（テストや再入場時向けのフック）
+    _leftRect = widget.initialLeftRect ?? _leftRect;
+    _rightRect = widget.initialRightRect ?? _rightRect;
   }
 
   @override
