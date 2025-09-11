@@ -26,14 +26,14 @@
 
 ## 1. 権限設定
 
-- [ ] Android Manifest の権限確認
-  - [ ] INTERNET 権限が入っていないことを確認
-  - [ ] CAMERA, READ_MEDIA_IMAGES を追加
-  - [ ] Android 9〜12 の場合 READ_EXTERNAL_STORAGE を許可
-- [ ] iOS Info.plist に権限文言追加
-  - [ ] NSCameraUsageDescription
-  - [ ] NSPhotoLibraryUsageDescription
-- [ ] 拒否時のリカバリ導線（設定アプリへの遷移）を実装
+- [x] Android Manifest の権限確認
+  - [x] INTERNET 権限が入っていないことを確認
+  - [x] CAMERA, READ_MEDIA_IMAGES を追加
+  - [x] Android 9〜12 の場合 READ_EXTERNAL_STORAGE を許可
+- [x] iOS Info.plist に権限文言追加
+  - [x] NSCameraUsageDescription
+  - [x] NSPhotoLibraryUsageDescription
+- [x] 拒否時のリカバリ導線（設定アプリへの遷移）を実装
 
 ---
 
