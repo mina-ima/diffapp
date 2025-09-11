@@ -1,6 +1,7 @@
 // Minimal image pipeline helpers.
 //
 // For now this is pure-Dart logic to enable TDD without native deps.
+import 'dart:math' as math;
 
 class Dimensions {
   final int width;
@@ -109,6 +110,120 @@ class IntRect {
 
   @override
   int get hashCode => Object.hash(left, top, width, height);
+}
+
+// -----------------------------
+// Tilt correction (Similarity Transform skeleton)
+// -----------------------------
+
+class Point2 {
+  final double x;
+  final double y;
+  const Point2(this.x, this.y);
+
+  @override
+  String toString() => 'Point2($x, $y)';
+}
+
+/// 2D 相似変換（スケール + 回転 + 並進）の表現。
+/// 回転は cos/sin を持ち、角度ラジアンは [rotationRad] で取得可能。
+class SimilarityTransform {
+  final double scale;
+  final double cosTheta;
+  final double sinTheta;
+  final double tx;
+  final double ty;
+
+  const SimilarityTransform({
+    required this.scale,
+    required this.cosTheta,
+    required this.sinTheta,
+    required this.tx,
+    required this.ty,
+  });
+
+  double get rotationRad => math.atan2(sinTheta, cosTheta);
+
+  @override
+  String toString() =>
+      'SimT(scale:$scale, cos:$cosTheta, sin:$sinTheta, tx:$tx, ty:$ty)';
+}
+
+// (uses dart:math directly)
+
+/// 相似変換の推定（最小二乗）。
+/// - 入力は対応点のリスト [src] と [dst]（同数、2点以上）。
+/// - 出力は s, R(cos/sin), t を満たす変換で、平均二乗誤差を最小化する近似解。
+/// - 参考：複素数表現を用いた簡易導出
+SimilarityTransform estimateSimilarityTransform(
+  List<Point2> src,
+  List<Point2> dst,
+) {
+  if (src.length != dst.length) {
+    throw ArgumentError('src and dst must have same length');
+  }
+  if (src.length < 2) {
+    throw ArgumentError('at least 2 point correspondences required');
+  }
+
+  // 平均を引いて中心化
+  double meanX = 0, meanY = 0, meanU = 0, meanV = 0;
+  for (var i = 0; i < src.length; i++) {
+    meanX += src[i].x;
+    meanY += src[i].y;
+    meanU += dst[i].x;
+    meanV += dst[i].y;
+  }
+  final n = src.length.toDouble();
+  meanX /= n;
+  meanY /= n;
+  meanU /= n;
+  meanV /= n;
+
+  // gamma = sum(w * conj(z)) / sum(|z|^2)
+  // w = u + i v, z = x + i y
+  double numRe = 0, numIm = 0, den = 0;
+  for (var i = 0; i < src.length; i++) {
+    final x = src[i].x - meanX;
+    final y = src[i].y - meanY;
+    final u = dst[i].x - meanU;
+    final v = dst[i].y - meanV;
+    numRe += u * x + v * y; // Re(w * conj(z)) = u*x + v*y
+    numIm += v * x - u * y; // Im(w * conj(z)) = v*x - u*y
+    den += x * x + y * y;
+  }
+  if (den <= 0) {
+    throw ArgumentError('degenerate configuration: zero variance in src');
+  }
+
+  final sCos = numRe / den;
+  final sSin = numIm / den;
+  final scale = math.sqrt(sCos * sCos + sSin * sSin);
+  double cosT = 1.0;
+  double sinT = 0.0;
+  if (scale > 0) {
+    cosT = sCos / scale;
+    sinT = sSin / scale;
+  }
+
+  // t = mu_y - s R mu_x
+  final tx = meanU - scale * (cosT * meanX - sinT * meanY);
+  final ty = meanV - scale * (sinT * meanX + cosT * meanY);
+
+  return SimilarityTransform(
+    scale: scale,
+    cosTheta: cosT,
+    sinTheta: sinT,
+    tx: tx,
+    ty: ty,
+  );
+}
+
+/// 相似変換の適用: p' = s R p + t
+Point2 applySimilarityTransform(Point2 p, SimilarityTransform t) {
+  final x = t.scale * (t.cosTheta * p.x - t.sinTheta * p.y) + t.tx;
+  final y = t.scale * (t.sinTheta * p.x + t.cosTheta * p.y) + t.ty;
+  return Point2(x, y);
 }
 
 /// Apply simple auto-contrast on 8-bit grayscale values when [enabled] is true.
