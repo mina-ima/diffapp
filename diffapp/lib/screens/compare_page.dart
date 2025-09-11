@@ -176,14 +176,29 @@ class _ComparePageState extends State<ComparePage>
     _scale = Tween<double>(begin: 0.96, end: 1.04)
         .animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut));
     _pulse.repeat(reverse: true);
-    _leftNorm = calculateResizeDimensions(
+    // 入力が 4000x3000 を超える場合は、まず自動リサイズ（クランプ）。
+    final leftClamped = clampToMaxResolution(
       widget.left.width,
       widget.left.height,
+      maxWidth: 4000,
+      maxHeight: 3000,
+    );
+    final rightClamped = clampToMaxResolution(
+      widget.right.width,
+      widget.right.height,
+      maxWidth: 4000,
+      maxHeight: 3000,
+    );
+
+    // その後、幅 1280 への正規化を行う。
+    _leftNorm = calculateResizeDimensions(
+      leftClamped.width,
+      leftClamped.height,
       targetMaxWidth: 1280,
     );
     _rightNorm = calculateResizeDimensions(
-      widget.right.width,
-      widget.right.height,
+      rightClamped.width,
+      rightClamped.height,
       targetMaxWidth: 1280,
     );
     // 初期矩形（テストや再入場時向けのフック）
