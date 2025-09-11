@@ -14,8 +14,7 @@
  - [x] iOS の Bundle Identifier を設定（既定: dev.minamidenshiimanaka.diffapp。CIで自動生成）
  - [x] Android の applicationId を設定（既定: dev.minamidenshiimanaka.diffapp。CIで自動生成）
 - [x] `flutter_lints` を追加し lint を CI に組込（`analysis_options.yaml` 設定済み）
-- [ ] README にセットアップ手順を記載
- - [x] README にセットアップ手順を記載
+- [x] README にセットアップ手順を記載
 - [ ] GitHub Actions で CI（lint / test / build）を設定
   - [x] analyze（lint）実行を追加
   - [x] test 実行を追加
@@ -71,7 +70,7 @@
   - [x] 画像寸法が異なる場合のスケーリング同期（1280幅へ正規化し比率適用）
   - [x] 縮小後画像に対する矩形スケーリング（Dartロジック）を実装（`scaleRectForResizedImage`）
 - [ ] 色調整
-  - [ ] 自動コントラスト調整を実装（任意 ON/OFF）
+  - [x] 自動コントラスト調整を実装（任意 ON/OFF）
 - [ ] 差分抽出
   - [ ] SSIM スコアマップ生成
   - [ ] スコアマップを正規化
