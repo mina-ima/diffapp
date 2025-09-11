@@ -11,8 +11,8 @@
   - [x] `pubspec.yaml` に description を追加済み（organization は後追い）
   - [ ] iOS/Android フォルダ作成（ローカルでは `flutter create .` を実行）
   - [x] CI 側で `flutter create .` を自動実行してビルド可能にした
- - [x] iOS の Bundle Identifier を設定（既定: dev.minamidenshiimanaka.diffapp。CIで自動生成）
- - [x] Android の applicationId を設定（既定: dev.minamidenshiimanaka.diffapp。CIで自動生成）
+- [x] iOS の Bundle Identifier を設定（既定: dev.minamidenshiimanaka.diffapp。CIで自動生成）
+- [x] Android の applicationId を設定（既定: dev.minamidenshiimanaka.diffapp。CIで自動生成）
 - [x] `flutter_lints` を追加し lint を CI に組込（`analysis_options.yaml` 設定済み）
 - [x] README にセットアップ手順を記載
 - [ ] GitHub Actions で CI（lint / test / build）を設定
@@ -63,7 +63,7 @@
   - [ ] ORB/SIFT 特徴点抽出
   - [ ] RANSAC でホモグラフィ推定
 - [ ] サイズ統一
-  - [ ] 幅 1280px に縮小
+  - [x] 幅 1280px に縮小（Dartロジックとテスト済み）
   - [x] 寸法計算ロジック（Dart）を実装（`lib/image_pipeline.dart`）
 - [ ] 矩形トリミング
   - [x] 左画像で選択した矩形を右画像に適用（UIの「同座標適用」ボタン）
