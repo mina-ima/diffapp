@@ -102,18 +102,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 12),
             ElevatedButton.icon(
-              onPressed: (_leftImage != null && _rightImage != null)
-                  ? () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ComparePage(
-                            left: _leftImage!,
-                            right: _rightImage!,
-                          ),
-                        ),
-                      );
-                    }
-                  : null,
+              onPressed: _onStart,
               icon: const Icon(Icons.play_arrow),
               label: const Text('けんさをはじめる'),
             ),
@@ -122,6 +111,23 @@ class _HomePageState extends State<HomePage> {
               '現在の設定: 精度${_settings.precision} / 色:${_settings.detectColor} 形:${_settings.detectShape} 場所:${_settings.detectPosition} 大きさ:${_settings.detectSize} 文字:${_settings.detectText}',
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _onStart() {
+    if (_leftImage == null || _rightImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('がぞうを えらんでね')),
+      );
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ComparePage(
+          left: _leftImage!,
+          right: _rightImage!,
         ),
       ),
     );
