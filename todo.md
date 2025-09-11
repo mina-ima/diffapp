@@ -3,7 +3,7 @@
 
 - [x] Flutter SDK バージョンを決定（例: 3.22.0）
   - [x] Dart SDK バージョン互換性を確認（自動テスト `test/sdk_compat_test.dart` を追加）
-  - [ ] fvm をインストール
+  - [x] fvm をインストール
   - [x] fvm で Flutter バージョンを pin（3.22.0）
   - [x] `.fvm/flutter_sdk` を `.gitignore` に追加
 - [x] 新規 Flutter プロジェクト作成（最小構成）
