@@ -36,6 +36,8 @@ SDK管理	fvm（Flutter 3.22.0 をプロジェクトで固定）
 	•	最大解像度：4000×3000px（内部で自動リサイズ）
 		- 対応拡張子: jpg/jpeg/png（大文字小文字不問）
 		- 超過時は縦横比を保持して 4000×3000 以内に縮小
+	•	権限: Androidは CAMERA / READ_MEDIA_IMAGES（9〜12は READ_EXTERNAL_STORAGE）、iOSはカメラ/フォトライブラリアクセス文言を設定
+	•	権限拒否時はSnackBarで「設定をひらく」導線を表示
 
 2.3 比較範囲指定
 	•	左画像を拡大表示
