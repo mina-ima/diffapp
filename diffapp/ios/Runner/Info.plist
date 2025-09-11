@@ -45,5 +45,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Permission usage descriptions -->
+	<key>NSCameraUsageDescription</key>
+	<string>カメラで撮影するために必要です</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>アルバムの画像を選ぶために必要です</string>
 </dict>
 </plist>

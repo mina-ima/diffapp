@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../permissions.dart';
 
 class SelectedImage {
   final String label;
@@ -13,10 +14,61 @@ class SelectedImage {
 
 class ImageSelectPage extends StatelessWidget {
   final String title;
-  const ImageSelectPage({super.key, required this.title});
+  final PermissionService permissionService;
+  const ImageSelectPage({super.key, required this.title, PermissionService? permissionService})
+      : permissionService = permissionService ?? const BasicPermissionService();
 
   void _pick(BuildContext context, SelectedImage img) {
     Navigator.of(context).pop(img);
+  }
+
+  Future<void> _handleDenied(BuildContext context, {required String target}) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('$target へのアクセスが必要です。設定で許可してね'),
+        action: SnackBarAction(
+          label: '設定をひらく',
+          onPressed: () {
+            permissionService.openAppSettings();
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onTapCamera(BuildContext context) async {
+    final result = await permissionService.requestCamera();
+    if (!context.mounted) return;
+    if (!result.granted) {
+      await _handleDenied(context, target: 'カメラ');
+      return;
+    }
+    _pick(
+      context,
+      const SelectedImage(
+        label: 'カメラ（ダミー）(1280x960)',
+        width: 1280,
+        height: 960,
+      ),
+    );
+  }
+
+  Future<void> _onTapGallery(BuildContext context) async {
+    final result = await permissionService.requestGallery();
+    if (!context.mounted) return;
+    if (!result.granted) {
+      await _handleDenied(context, target: '写真');
+      return;
+    }
+    _pick(
+      context,
+      const SelectedImage(
+        label: 'ギャラリー（ダミー）(1600x900)',
+        width: 1600,
+        height: 900,
+      ),
+    );
   }
 
   @override
@@ -78,14 +130,8 @@ class ImageSelectPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _pick(
-                      context,
-                      const SelectedImage(
-                        label: 'ギャラリー（ダミー）(1600x900)',
-                        width: 1600,
-                        height: 900,
-                      ),
-                    ),
+                    key: const Key('pick_gallery'),
+                    onPressed: () => _onTapGallery(context),
                     icon: const Icon(Icons.photo_library),
                     label: const Text('ギャラリーから選ぶ'),
                   ),
@@ -93,14 +139,8 @@ class ImageSelectPage extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _pick(
-                      context,
-                      const SelectedImage(
-                        label: 'カメラ（ダミー）(1280x960)',
-                        width: 1280,
-                        height: 960,
-                      ),
-                    ),
+                    key: const Key('pick_camera'),
+                    onPressed: () => _onTapCamera(context),
                     icon: const Icon(Icons.photo_camera),
                     label: const Text('カメラで撮影'),
                   ),
