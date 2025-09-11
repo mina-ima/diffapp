@@ -90,6 +90,14 @@ class _SettingsPageState extends State<SettingsPage> {
             value: _settings.enableSound,
             onChanged: (bool? v) => _update(sound: v ?? _settings.enableSound),
           ),
+          ListTile(
+            leading: const Icon(Icons.article_outlined),
+            title: const Text('OSS ライセンス'),
+            onTap: () => showLicensePage(
+              context: context,
+              applicationName: 'Diffapp',
+            ),
+          ),
           const Divider(height: 24),
           const _SectionTitle('精度'),
           ListTile(
