@@ -19,6 +19,42 @@ class Dimensions {
   int get hashCode => Object.hash(width, height);
 }
 
+/// Returns true if the given file name/path looks like a supported image.
+/// Supports: .jpg, .jpeg, .png (case-insensitive)
+bool isSupportedImageFormat(String name) {
+  if (name.isEmpty) return false;
+  final dot = name.lastIndexOf('.');
+  if (dot <= 0 || dot == name.length - 1) return false;
+  final ext = name.substring(dot + 1).toLowerCase();
+  return ext == 'jpg' || ext == 'jpeg' || ext == 'png';
+}
+
+/// Clamp an image size so that it fits within [maxWidth] x [maxHeight]
+/// while preserving aspect ratio. Returns new dimensions (width, height).
+/// If already within bounds, returns original size.
+Dimensions clampToMaxResolution(
+  int width,
+  int height, {
+  int maxWidth = 4000,
+  int maxHeight = 3000,
+}) {
+  if (width <= 0 || height <= 0) {
+    throw ArgumentError('width and height must be positive');
+  }
+  if (maxWidth <= 0 || maxHeight <= 0) {
+    throw ArgumentError('maxWidth and maxHeight must be positive');
+  }
+  if (width <= maxWidth && height <= maxHeight) {
+    return Dimensions(width, height);
+  }
+  final scaleW = maxWidth / width;
+  final scaleH = maxHeight / height;
+  final scale = scaleW < scaleH ? scaleW : scaleH;
+  final newW = (width * scale).round();
+  final newH = (height * scale).round();
+  return Dimensions(newW, newH);
+}
+
 /// Calculate resized dimensions preserving aspect ratio.
 /// - If [width] <= [targetMaxWidth], returns original dimensions.
 /// - Otherwise scales so that the resulting width == [targetMaxWidth].
