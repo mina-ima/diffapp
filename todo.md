@@ -135,7 +135,7 @@
 - [ ] 単体テスト（Dart）
   - [ ] 画像入力関数
   - [x] 設定保持ロジック
-  - [ ] 上位 20 件制限処理
+  - [x] 上位 20 件制限処理
   - [x] 前処理（サイズ統一）の寸法計算テスト（`test/image_pipeline_test.dart`）
   - [x] 設定モデルのシリアライズ/バリデーション（`test/settings_test.dart`）
   - [x] 矩形スケーリングのテスト（`scaleRectForResizedImage`）
