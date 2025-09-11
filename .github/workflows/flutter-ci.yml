@@ -1,0 +1,105 @@
+name: Flutter CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze_test:
+    name: Analyze and Test (Flutter)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: diffapp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter 3.22.0
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test --no-pub
+
+  build_android:
+    name: Build Android (Debug)
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('diffapp/pubspec.yaml') != '' }}
+    defaults:
+      run:
+        working-directory: diffapp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter 3.22.0
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Ensure platform folders
+        run: |
+          if [ ! -d android ]; then
+            flutter create --org dev.minamidenshiimanaka .
+          fi
+
+      - name: Build APK (debug)
+        run: flutter build apk --debug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: diffapp/build/app/outputs/flutter-apk/app-debug.apk
+
+  build_ios:
+    name: Build iOS (Simulator, No Codesign)
+    runs-on: macos-latest
+    if: ${{ hashFiles('diffapp/pubspec.yaml') != '' }}
+    defaults:
+      run:
+        working-directory: diffapp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter 3.22.0
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Ensure platform folders
+        run: |
+          if [ ! -d ios ]; then
+            flutter create --org dev.minamidenshiimanaka .
+          fi
+
+      - name: Build iOS (simulator)
+        run: flutter build ios --simulator --no-codesign
+
+      - name: Upload iOS app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-app
+          path: diffapp/build/ios/iphonesimulator/Runner.app
