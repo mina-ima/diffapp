@@ -9,7 +9,7 @@
 - [x] 新規 Flutter プロジェクト作成（最小構成）
   - [x] `lib/main.dart` を追加
   - [x] `pubspec.yaml` に description を追加済み（organization は後追い）
-  - [ ] iOS/Android フォルダ作成（ローカルでは `flutter create .` を実行）
+  - [x] iOS/Android フォルダ作成（ローカルでは `flutter create .` を実行）
   - [x] CI 側で `flutter create .` を自動実行してビルド可能にした
 - [x] iOS の Bundle Identifier を設定（既定: dev.minamidenshiimanaka.diffapp。CIで自動生成）
 - [x] Android の applicationId を設定（既定: dev.minamidenshiimanaka.diffapp。CIで自動生成）
