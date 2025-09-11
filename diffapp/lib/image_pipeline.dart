@@ -304,6 +304,223 @@ RansacSimResult estimateSimilarityTransformRansac(
   return RansacSimResult(refined, bestInliers.length);
 }
 
+// -----------------------------
+// Homography (Projective Transform) + RANSAC
+// -----------------------------
+
+class Homography {
+  final double h11, h12, h13;
+  final double h21, h22, h23;
+  final double h31, h32, h33;
+  const Homography({
+    required this.h11,
+    required this.h12,
+    required this.h13,
+    required this.h21,
+    required this.h22,
+    required this.h23,
+    required this.h31,
+    required this.h32,
+    required this.h33,
+  });
+
+  Homography normalized() {
+    if (h33 == 0) return this;
+    return Homography(
+      h11: h11 / h33,
+      h12: h12 / h33,
+      h13: h13 / h33,
+      h21: h21 / h33,
+      h22: h22 / h33,
+      h23: h23 / h33,
+      h31: h31 / h33,
+      h32: h32 / h33,
+      h33: 1.0,
+    );
+  }
+
+  @override
+  String toString() =>
+      'H([[${h11.toStringAsFixed(4)}, ${h12.toStringAsFixed(4)}, ${h13.toStringAsFixed(1)}],'
+      ' [${h21.toStringAsFixed(4)}, ${h22.toStringAsFixed(4)}, ${h23.toStringAsFixed(1)}],'
+      ' [${h31.toStringAsFixed(6)}, ${h32.toStringAsFixed(6)}, ${h33.toStringAsFixed(1)}]])';
+}
+
+Point2 applyHomography(Point2 p, Homography h) {
+  final w = h.h31 * p.x + h.h32 * p.y + h.h33;
+  final u = (h.h11 * p.x + h.h12 * p.y + h.h13) / w;
+  final v = (h.h21 * p.x + h.h22 * p.y + h.h23) / w;
+  return Point2(u, v);
+}
+
+// Solve A x = b (square or overdetermined via normal equations) for small sizes.
+List<double> _solveLeastSquares(List<List<double>> a, List<double> b) {
+  final m = a.length;
+  final n = a[0].length;
+  // Build normal equations: AtA (n x n), Atb (n)
+  final ata = List.generate(n, (_) => List<double>.filled(n, 0.0));
+  final atb = List<double>.filled(n, 0.0);
+  for (var i = 0; i < m; i++) {
+    for (var c1 = 0; c1 < n; c1++) {
+      atb[c1] += a[i][c1] * b[i];
+      for (var c2 = 0; c2 < n; c2++) {
+        ata[c1][c2] += a[i][c1] * a[i][c2];
+      }
+    }
+  }
+  // Solve ata * x = atb by Gaussian elimination with partial pivoting
+  for (var i = 0; i < n; i++) {
+    // Pivot
+    var pivot = i;
+    var maxAbs = ata[i][i].abs();
+    for (var r = i + 1; r < n; r++) {
+      final v = ata[r][i].abs();
+      if (v > maxAbs) {
+        maxAbs = v;
+        pivot = r;
+      }
+    }
+    if (pivot != i) {
+      final tmp = ata[i];
+      ata[i] = ata[pivot];
+      ata[pivot] = tmp;
+      final tb = atb[i];
+      atb[i] = atb[pivot];
+      atb[pivot] = tb;
+    }
+    final diag = ata[i][i];
+    if (diag.abs() < 1e-12) {
+      throw StateError('Singular normal matrix');
+    }
+    // Normalize row
+    for (var c = i; c < n; c++) {
+      ata[i][c] /= diag;
+    }
+    atb[i] /= diag;
+    // Eliminate below/above
+    for (var r = 0; r < n; r++) {
+      if (r == i) continue;
+      final f = ata[r][i];
+      if (f == 0) continue;
+      for (var c = i; c < n; c++) {
+        ata[r][c] -= f * ata[i][c];
+      }
+      atb[r] -= f * atb[i];
+    }
+  }
+  return atb; // now contains the solution
+}
+
+Homography estimateHomographyLeastSquares(List<Point2> src, List<Point2> dst) {
+  if (src.length != dst.length) {
+    throw ArgumentError('src and dst must have same length');
+  }
+  if (src.length < 4) {
+    throw ArgumentError('at least 4 correspondences required');
+  }
+
+  final a = <List<double>>[];
+  final b = <double>[];
+  for (var i = 0; i < src.length; i++) {
+    final x = src[i].x, y = src[i].y;
+    final u = dst[i].x, v = dst[i].y;
+    a.add([x, y, 1, 0, 0, 0, -u * x, -u * y]);
+    b.add(u);
+    a.add([0, 0, 0, x, y, 1, -v * x, -v * y]);
+    b.add(v);
+  }
+  final h = _solveLeastSquares(a, b);
+  return Homography(
+    h11: h[0],
+    h12: h[1],
+    h13: h[2],
+    h21: h[3],
+    h22: h[4],
+    h23: h[5],
+    h31: h[6],
+    h32: h[7],
+    h33: 1.0,
+  ).normalized();
+}
+
+class RansacHomographyResult {
+  final Homography homography;
+  final int inliersCount;
+  const RansacHomographyResult(this.homography, this.inliersCount);
+
+  @override
+  String toString() =>
+      'RansacHomographyResult(inliers:$inliersCount, $homography)';
+}
+
+RansacHomographyResult estimateHomographyRansac(
+  List<Point2> src,
+  List<Point2> dst, {
+  int iterations = 300,
+  double inlierThreshold = 2.0,
+  int? minInliers,
+}) {
+  if (src.length != dst.length) {
+    throw ArgumentError('src and dst must have same length');
+  }
+  if (src.length < 4) {
+    throw ArgumentError('at least 4 correspondences required');
+  }
+  final n = src.length;
+  if (minInliers != null && (minInliers < 4 || minInliers > n)) {
+    throw ArgumentError('minInliers must be in [4, $n]');
+  }
+  int bestCount = -1;
+  List<int> bestInliers = const [];
+  final rng = math.Random(6789);
+
+  double sq(double v) => v * v;
+  double err(Point2 a, Point2 b) => math.sqrt(sq(a.x - b.x) + sq(a.y - b.y));
+
+  List<int> sample4(int n) {
+    final set = <int>{};
+    while (set.length < 4) {
+      set.add(rng.nextInt(n));
+    }
+    return set.toList(growable: false);
+  }
+
+  for (var it = 0; it < iterations; it++) {
+    final idx = sample4(n);
+    final s = [src[idx[0]], src[idx[1]], src[idx[2]], src[idx[3]]];
+    final d = [dst[idx[0]], dst[idx[1]], dst[idx[2]], dst[idx[3]]];
+
+    Homography h;
+    try {
+      h = estimateHomographyLeastSquares(s, d);
+    } catch (_) {
+      continue; // skip degenerate sample
+    }
+
+    final current = <int>[];
+    for (var k = 0; k < n; k++) {
+      final p = applyHomography(src[k], h);
+      if (err(p, dst[k]) <= inlierThreshold) current.add(k);
+    }
+    if (current.length > bestCount) {
+      bestCount = current.length;
+      bestInliers = current;
+    }
+  }
+
+  if (bestInliers.isEmpty) {
+    throw StateError('RANSAC failed to find a valid homography');
+  }
+  if (minInliers != null && bestInliers.length < minInliers) {
+    throw StateError('Not enough inliers: ${bestInliers.length} < $minInliers');
+  }
+
+  final inSrc = [for (final i in bestInliers) src[i]];
+  final inDst = [for (final i in bestInliers) dst[i]];
+  final refined = estimateHomographyLeastSquares(inSrc, inDst);
+  return RansacHomographyResult(refined, bestInliers.length);
+}
+
 /// Apply simple auto-contrast on 8-bit grayscale values when [enabled] is true.
 /// - Input: list of ints 0..255
 /// - Behavior: if enabled, linearly stretch [min..max] to [0..255].
