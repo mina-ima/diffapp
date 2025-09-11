@@ -33,8 +33,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Settings _settings = Settings.initial();
-  String? _leftImage;
-  String? _rightImage;
+  SelectedImage? _leftImage;
+  SelectedImage? _rightImage;
 
   Future<void> _openSettings() async {
     final result = await Navigator.of(context).push<Settings>(
@@ -83,8 +83,8 @@ class _HomePageState extends State<HomePage> {
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => ComparePage(
-                            leftLabel: _leftImage!,
-                            rightLabel: _rightImage!,
+                            left: _leftImage!,
+                            right: _rightImage!,
                           ),
                         ),
                       );
@@ -124,7 +124,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _pick(String side) async {
     final title = side == 'left' ? '左の画像を選ぶ' : '右の画像を選ぶ';
-    final result = await Navigator.of(context).push<String>(
+    final result = await Navigator.of(context).push<SelectedImage>(
       MaterialPageRoute(
         builder: (_) => ImageSelectPage(title: title),
       ),

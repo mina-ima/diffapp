@@ -100,6 +100,30 @@ IntRect scaleRectForResizedImage(
   );
 }
 
+/// Scale a rectangle from one coordinate space to another by independent X/Y scales.
+IntRect scaleRectBetweenSpaces(
+  IntRect rect,
+  int fromWidth,
+  int fromHeight,
+  int toWidth,
+  int toHeight,
+) {
+  if (fromWidth <= 0 || fromHeight <= 0 || toWidth <= 0 || toHeight <= 0) {
+    throw ArgumentError('dimensions must be positive');
+  }
+  if (rect.left < 0 || rect.top < 0 || rect.right > fromWidth || rect.bottom > fromHeight) {
+    throw ArgumentError('rect exceeds source bounds');
+  }
+  final scaleX = toWidth / fromWidth;
+  final scaleY = toHeight / fromHeight;
+  return IntRect(
+    left: (rect.left * scaleX).round(),
+    top: (rect.top * scaleY).round(),
+    width: (rect.width * scaleX).round(),
+    height: (rect.height * scaleY).round(),
+  );
+}
+
 int _intersectArea(IntRect a, IntRect b) {
   final x1 = a.left > b.left ? a.left : b.left;
   final y1 = a.top > b.top ? a.top : b.top;

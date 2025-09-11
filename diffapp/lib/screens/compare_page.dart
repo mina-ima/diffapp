@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:diffapp/image_pipeline.dart';
 import 'package:diffapp/screens/rect_select_page.dart';
+import 'package:diffapp/screens/image_select_page.dart';
 
 class ComparePage extends StatefulWidget {
-  final String leftLabel;
-  final String rightLabel;
+  final SelectedImage left;
+  final SelectedImage right;
 
-  const ComparePage({super.key, required this.leftLabel, required this.rightLabel});
+  const ComparePage({super.key, required this.left, required this.right});
 
   @override
   State<ComparePage> createState() => _ComparePageState();
@@ -14,22 +15,42 @@ class ComparePage extends StatefulWidget {
 
 class _ComparePageState extends State<ComparePage> {
   IntRect? _leftRect;
+  IntRect? _rightRect;
+  late final Dimensions _leftNorm;
+  late final Dimensions _rightNorm;
 
   void _startDetection(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('検出は未実装（ダミー） 矩形: ${_leftRect ?? '未指定'}')),
+      SnackBar(content: Text('検出は未実装（ダミー） 左:${_leftRect ?? '未指定'} / 右:${_rightRect ?? '未指定'}')),
     );
   }
 
   Future<void> _selectRect() async {
     final result = await Navigator.of(context).push<IntRect>(
       MaterialPageRoute(
-        builder: (_) => const RectSelectPage(title: '左の範囲をえらぶ'),
+        builder: (_) => RectSelectPage(
+          title: '左の範囲をえらぶ',
+          imageWidth: _leftNorm.width,
+          imageHeight: _leftNorm.height,
+        ),
       ),
     );
     if (result != null) {
       setState(() => _leftRect = result);
     }
+  }
+
+  void _applySameRectToRight() {
+    if (_leftRect == null) return;
+    // Map from left normalized space -> right normalized space
+    final mapped = scaleRectBetweenSpaces(
+      _leftRect!,
+      _leftNorm.width,
+      _leftNorm.height,
+      _rightNorm.width,
+      _rightNorm.height,
+    );
+    setState(() => _rightRect = mapped);
   }
 
   @override
@@ -46,9 +67,9 @@ class _ComparePageState extends State<ComparePage> {
             Expanded(
               child: Row(
                 children: [
-                  Expanded(child: _placeholderCard(label: '左: ${widget.leftLabel}', rect: _leftRect)),
+                  Expanded(child: _placeholderCard(label: '左: ${widget.left.label}', dims: _leftNorm, rect: _leftRect)),
                   const SizedBox(width: 12),
-                  Expanded(child: _placeholderCard(label: '右: ${widget.rightLabel}')),
+                  Expanded(child: _placeholderCard(label: '右: ${widget.right.label}', dims: _rightNorm, rect: _rightRect)),
                 ],
               ),
             ),
@@ -60,6 +81,14 @@ class _ComparePageState extends State<ComparePage> {
                     onPressed: _selectRect,
                     icon: const Icon(Icons.crop),
                     label: const Text('範囲指定（左）'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _leftRect != null ? _applySameRectToRight : null,
+                    icon: const Icon(Icons.copy_all),
+                    label: const Text('同座標適用（右へ）'),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -78,7 +107,14 @@ class _ComparePageState extends State<ComparePage> {
     );
   }
 
-  Widget _placeholderCard({required String label, IntRect? rect}) {
+  @override
+  void initState() {
+    super.initState();
+    _leftNorm = calculateResizeDimensions(widget.left.width, widget.left.height, targetMaxWidth: 1280);
+    _rightNorm = calculateResizeDimensions(widget.right.width, widget.right.height, targetMaxWidth: 1280);
+  }
+
+  Widget _placeholderCard({required String label, required Dimensions dims, IntRect? rect}) {
     return Card(
       elevation: 1,
       child: Container(
@@ -89,7 +125,7 @@ class _ComparePageState extends State<ComparePage> {
           children: [
             const Icon(Icons.image, size: 64, color: Colors.grey),
             const SizedBox(height: 8),
-            Text(label),
+            Text('$label  (${dims.width}x${dims.height})'),
             if (rect != null) ...[
               const SizedBox(height: 8),
               Text('選択: l=${rect.left}, t=${rect.top}, w=${rect.width}, h=${rect.height}',

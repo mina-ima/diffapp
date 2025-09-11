@@ -19,9 +19,12 @@ class RectSelectPage extends StatefulWidget {
   State<RectSelectPage> createState() => _RectSelectPageState();
 }
 
+enum _ResizeHandle { tl, t, tr, r, br, b, bl, l }
+
 class _RectSelectPageState extends State<RectSelectPage> {
   late IntRect _rect;
   bool _editMode = true; // 編集: 矩形移動 / 非編集: 拡大・パン
+  static const int _minSize = 32;
 
   @override
   void initState() {
@@ -165,37 +168,188 @@ class _RectSelectPageState extends State<RectSelectPage> {
     final pxTop = _rect.top * scale;
     final pxW = _rect.width * scale;
     final pxH = _rect.height * scale;
+    const handleSize = 16.0;
     return Positioned(
       left: pxLeft,
       top: pxTop,
       width: pxW,
       height: pxH,
+      child: Stack(
+        children: [
+          // Move area
+          Positioned.fill(
+            child: GestureDetector(
+              onPanUpdate: (details) {
+                final dxImage = details.delta.dx / scale;
+                final dyImage = details.delta.dy / scale;
+                final newLeft = (_rect.left + dxImage).round();
+                final newTop = (_rect.top + dyImage).round();
+                setState(() {
+                  _rect = IntRect(
+                    left: newLeft.clamp(0, widget.imageWidth - _rect.width),
+                    top: newTop.clamp(0, widget.imageHeight - _rect.height),
+                    width: _rect.width,
+                    height: _rect.height,
+                  );
+                });
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.redAccent, width: 2),
+                  color: Colors.redAccent.withOpacity(0.08),
+                ),
+                child: const Center(
+                  child: Icon(Icons.drag_indicator, color: Colors.redAccent),
+                ),
+              ),
+            ),
+          ),
+
+          // Handles
+          _buildHandle(_ResizeHandle.tl, scale, handleSize),
+          _buildHandle(_ResizeHandle.t, scale, handleSize),
+          _buildHandle(_ResizeHandle.tr, scale, handleSize),
+          _buildHandle(_ResizeHandle.r, scale, handleSize),
+          _buildHandle(_ResizeHandle.br, scale, handleSize),
+          _buildHandle(_ResizeHandle.b, scale, handleSize),
+          _buildHandle(_ResizeHandle.bl, scale, handleSize),
+          _buildHandle(_ResizeHandle.l, scale, handleSize),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHandle(_ResizeHandle h, double scale, double size) {
+    // Position handle within the rect area (local to rect)
+    double localLeft, localTop;
+    final pxW = _rect.width * scale;
+    final pxH = _rect.height * scale;
+
+    switch (h) {
+      case _ResizeHandle.tl:
+        localLeft = -size / 2;
+        localTop = -size / 2;
+        break;
+      case _ResizeHandle.t:
+        localLeft = pxW / 2 - size / 2;
+        localTop = -size / 2;
+        break;
+      case _ResizeHandle.tr:
+        localLeft = pxW - size / 2;
+        localTop = -size / 2;
+        break;
+      case _ResizeHandle.r:
+        localLeft = pxW - size / 2;
+        localTop = pxH / 2 - size / 2;
+        break;
+      case _ResizeHandle.br:
+        localLeft = pxW - size / 2;
+        localTop = pxH - size / 2;
+        break;
+      case _ResizeHandle.b:
+        localLeft = pxW / 2 - size / 2;
+        localTop = pxH - size / 2;
+        break;
+      case _ResizeHandle.bl:
+        localLeft = -size / 2;
+        localTop = pxH - size / 2;
+        break;
+      case _ResizeHandle.l:
+        localLeft = -size / 2;
+        localTop = pxH / 2 - size / 2;
+        break;
+    }
+
+    return Positioned(
+      left: localLeft,
+      top: localTop,
+      width: size,
+      height: size,
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onPanUpdate: (details) {
-          final dxImage = details.delta.dx / scale;
-          final dyImage = details.delta.dy / scale;
-          final newLeft = (_rect.left + dxImage).round();
-          final newTop = (_rect.top + dyImage).round();
-          setState(() {
-            _rect = IntRect(
-              left: newLeft.clamp(0, widget.imageWidth - _rect.width),
-              top: newTop.clamp(0, widget.imageHeight - _rect.height),
-              width: _rect.width,
-              height: _rect.height,
-            );
-          });
+          final dx = details.delta.dx / scale;
+          final dy = details.delta.dy / scale;
+          _resizeFromHandle(h, dx, dy);
         },
         child: Container(
           decoration: BoxDecoration(
+            color: Colors.white,
             border: Border.all(color: Colors.redAccent, width: 2),
-            color: Colors.redAccent.withOpacity(0.08),
-          ),
-          child: const Center(
-            child: Icon(Icons.drag_indicator, color: Colors.redAccent),
+            shape: BoxShape.rectangle,
           ),
         ),
       ),
     );
   }
-}
 
+  void _resizeFromHandle(_ResizeHandle h, double dxImage, double dyImage) {
+    double left = _rect.left.toDouble();
+    double right = _rect.right.toDouble();
+    double top = _rect.top.toDouble();
+    double bottom = _rect.bottom.toDouble();
+
+    bool affectsLeft = h == _ResizeHandle.tl || h == _ResizeHandle.l || h == _ResizeHandle.bl;
+    bool affectsRight = h == _ResizeHandle.tr || h == _ResizeHandle.r || h == _ResizeHandle.br;
+    bool affectsTop = h == _ResizeHandle.tl || h == _ResizeHandle.t || h == _ResizeHandle.tr;
+    bool affectsBottom = h == _ResizeHandle.bl || h == _ResizeHandle.b || h == _ResizeHandle.br;
+
+    if (affectsLeft) left += dxImage;
+    if (affectsRight) right += dxImage;
+    if (affectsTop) top += dyImage;
+    if (affectsBottom) bottom += dyImage;
+
+    // Clamp within image bounds first
+    left = left.clamp(0, widget.imageWidth.toDouble());
+    right = right.clamp(0, widget.imageWidth.toDouble());
+    top = top.clamp(0, widget.imageHeight.toDouble());
+    bottom = bottom.clamp(0, widget.imageHeight.toDouble());
+
+    // Enforce minimum size depending on the moving side
+    if (right - left < _minSize) {
+      if (affectsLeft && !affectsRight) {
+        left = right - _minSize;
+      } else {
+        right = left + _minSize;
+      }
+    }
+    if (bottom - top < _minSize) {
+      if (affectsTop && !affectsBottom) {
+        top = bottom - _minSize;
+      } else {
+        bottom = top + _minSize;
+      }
+    }
+
+    // Final clamp to keep rectangle within bounds
+    if (left < 0) {
+      right -= left; // shift right by deficit
+      left = 0;
+    }
+    if (right > widget.imageWidth) {
+      left -= (right - widget.imageWidth);
+      right = widget.imageWidth.toDouble();
+    }
+    if (top < 0) {
+      bottom -= top;
+      top = 0;
+    }
+    if (bottom > widget.imageHeight) {
+      top -= (bottom - widget.imageHeight);
+      bottom = widget.imageHeight.toDouble();
+    }
+
+    int iLeft = left.round();
+    int iTop = top.round();
+    int iRight = right.round();
+    int iBottom = bottom.round();
+
+    final newW = iRight - iLeft;
+    final newH = iBottom - iTop;
+    if (newW < _minSize || newH < _minSize) return; // safety
+
+    setState(() {
+      _rect = IntRect(left: iLeft, top: iTop, width: newW, height: newH);
+    });
+  }
+}

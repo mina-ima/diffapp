@@ -83,4 +83,18 @@ void main() {
       expect(kept.length, 20);
     });
   });
+
+  group('scaleRectBetweenSpaces', () {
+    test('scales with independent x/y ratios', () {
+      const r = IntRect(left: 50, top: 100, width: 200, height: 300);
+      final scaled = scaleRectBetweenSpaces(r, 1000, 2000, 2000, 1000);
+      // x2 on width, 0.5 on height
+      expect(scaled, const IntRect(left: 100, top: 50, width: 400, height: 150));
+    });
+
+    test('throws if rect exceeds source bounds', () {
+      const r = IntRect(left: 900, top: 900, width: 200, height: 200);
+      expect(() => scaleRectBetweenSpaces(r, 1000, 1000, 2000, 2000), throwsArgumentError);
+    });
+  });
 }
