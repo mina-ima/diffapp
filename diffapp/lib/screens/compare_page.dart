@@ -13,11 +13,14 @@ class ComparePage extends StatefulWidget {
   State<ComparePage> createState() => _ComparePageState();
 }
 
-class _ComparePageState extends State<ComparePage> {
+class _ComparePageState extends State<ComparePage>
+    with TickerProviderStateMixin {
   IntRect? _leftRect;
   IntRect? _rightRect;
   late final Dimensions _leftNorm;
   late final Dimensions _rightNorm;
+  late final AnimationController _pulse;
+  late final Animation<double> _scale;
 
   void _startDetection(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -84,6 +87,7 @@ class _ComparePageState extends State<ComparePage> {
                       label: '左: ${widget.left.label}',
                       dims: _leftNorm,
                       rect: _leftRect,
+                      isLeft: true,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -92,6 +96,7 @@ class _ComparePageState extends State<ComparePage> {
                       label: '右: ${widget.right.label}',
                       dims: _rightNorm,
                       rect: _rightRect,
+                      isLeft: false,
                     ),
                   ),
                 ],
@@ -150,6 +155,11 @@ class _ComparePageState extends State<ComparePage> {
   @override
   void initState() {
     super.initState();
+    _pulse = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900));
+    _scale = Tween<double>(begin: 0.96, end: 1.04)
+        .animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut));
+    _pulse.repeat(reverse: true);
     _leftNorm = calculateResizeDimensions(
       widget.left.width,
       widget.left.height,
@@ -162,31 +172,66 @@ class _ComparePageState extends State<ComparePage> {
     );
   }
 
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
   Widget _placeholderCard({
     required String label,
     required Dimensions dims,
     IntRect? rect,
+    required bool isLeft,
   }) {
     return Card(
       elevation: 1,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.image, size: 64, color: Colors.grey),
-            const SizedBox(height: 8),
-            Text('$label  (${dims.width}x${dims.height})'),
-            if (rect != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                '選択: l=${rect.left}, t=${rect.top}, w=${rect.width}, h=${rect.height}',
-                style: const TextStyle(fontSize: 12),
+      child: Stack(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.image, size: 64, color: Colors.grey),
+                const SizedBox(height: 8),
+                Text('$label  (${dims.width}x${dims.height})'),
+                if (rect != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    '選択: l=${rect.left}, t=${rect.top}, w=${rect.width}, h=${rect.height}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // 赤枠ハイライト（ポヨンアニメ）
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Center(
+                child: AnimatedBuilder(
+                  animation: _scale,
+                  builder: (context, child) => Transform.scale(
+                    scale: _scale.value,
+                    child: child,
+                  ),
+                  child: Container(
+                    key: Key(isLeft ? 'highlight-left' : 'highlight-right'),
+                    width: 82,
+                    height: 82,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.redAccent, width: 3),
+                      color: Colors.redAccent.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
               ),
-            ],
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
