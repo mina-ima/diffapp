@@ -108,7 +108,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 8),
             Text(
-              '現在の設定: 精度${_settings.precision} / 色:${_settings.detectColor} 形:${_settings.detectShape} 場所:${_settings.detectPosition} 大きさ:${_settings.detectSize} 文字:${_settings.detectText}',
+              '現在の設定: 精度${_settings.precision} / 色:${_settings.detectColor} 形:${_settings.detectShape} 場所:${_settings.detectPosition} 大きさ:${_settings.detectSize} 文字:${_settings.detectText} 音:${_settings.enableSound}',
             ),
           ],
         ),
@@ -128,6 +128,7 @@ class _HomePageState extends State<HomePage> {
         builder: (_) => ComparePage(
           left: _leftImage!,
           right: _rightImage!,
+          enableSound: _settings.enableSound,
         ),
       ),
     );

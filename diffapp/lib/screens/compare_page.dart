@@ -10,6 +10,7 @@ class ComparePage extends StatefulWidget {
   final SelectedImage right;
   final IntRect? initialLeftRect;
   final IntRect? initialRightRect;
+  final bool enableSound;
   // テスト・デモ用のフック：モデル読込失敗をシミュレート
   final bool simulateModelLoadFailure;
   // テスト・デモ用のフック：タイムアウトをシミュレート
@@ -23,6 +24,7 @@ class ComparePage extends StatefulWidget {
     required this.right,
     this.initialLeftRect,
     this.initialRightRect,
+    this.enableSound = true,
     this.simulateModelLoadFailure = false,
     this.simulateTimeout = false,
     this.simulateInternalError = false,
@@ -43,7 +45,9 @@ class _ComparePageState extends State<ComparePage>
 
   void _startDetection(BuildContext context) {
     // 効果音
-    Sfx.instance.play('start');
+    if (widget.enableSound) {
+      Sfx.instance.play('start');
+    }
     // モデル読込失敗をシミュレート（テスト用）
     if (widget.simulateModelLoadFailure) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -91,7 +95,9 @@ class _ComparePageState extends State<ComparePage>
       _leftRect = null;
       _rightRect = null;
     });
-    Sfx.instance.play('reset');
+    if (widget.enableSound) {
+      Sfx.instance.play('reset');
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('最初からやりなおします')),
     );

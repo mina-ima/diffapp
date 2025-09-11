@@ -25,6 +25,7 @@ class _SettingsPageState extends State<SettingsPage> {
     bool? position,
     bool? size,
     bool? text,
+    bool? sound,
     int? precision,
   }) {
     setState(() {
@@ -34,6 +35,7 @@ class _SettingsPageState extends State<SettingsPage> {
         detectPosition: position,
         detectSize: size,
         detectText: text,
+        enableSound: sound,
         precision: precision,
       );
     });
@@ -80,6 +82,13 @@ class _SettingsPageState extends State<SettingsPage> {
             title: const Text('文字'),
             value: _settings.detectText,
             onChanged: (bool? v) => _update(text: v ?? _settings.detectText),
+          ),
+          const Divider(height: 24),
+          const _SectionTitle('その他'),
+          CheckboxListTile(
+            title: const Text('効果音'),
+            value: _settings.enableSound,
+            onChanged: (bool? v) => _update(sound: v ?? _settings.enableSound),
           ),
           const Divider(height: 24),
           const _SectionTitle('精度'),

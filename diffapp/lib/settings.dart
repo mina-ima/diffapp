@@ -10,6 +10,7 @@ class Settings {
   final bool detectPosition;
   final bool detectSize;
   final bool detectText;
+  final bool enableSound;
   final int precision; // 1..5
 
   const Settings({
@@ -18,6 +19,7 @@ class Settings {
     required this.detectPosition,
     required this.detectSize,
     required this.detectText,
+    required this.enableSound,
     required this.precision,
   }) : assert(
           precision >= minPrecision && precision <= maxPrecision,
@@ -30,6 +32,7 @@ class Settings {
         detectPosition: true,
         detectSize: true,
         detectText: true,
+        enableSound: true,
         precision: defaultPrecision,
       );
 
@@ -39,6 +42,7 @@ class Settings {
     bool? detectPosition,
     bool? detectSize,
     bool? detectText,
+    bool? enableSound,
     int? precision,
   }) {
     final nextPrecision = precision ?? this.precision;
@@ -53,6 +57,7 @@ class Settings {
       detectPosition: detectPosition ?? this.detectPosition,
       detectSize: detectSize ?? this.detectSize,
       detectText: detectText ?? this.detectText,
+      enableSound: enableSound ?? this.enableSound,
       precision: nextPrecision,
     );
   }
@@ -63,6 +68,7 @@ class Settings {
         'detectPosition': detectPosition,
         'detectSize': detectSize,
         'detectText': detectText,
+        'enableSound': enableSound,
         'precision': precision,
       };
 
@@ -90,6 +96,7 @@ class Settings {
       detectPosition: readBool('detectPosition', base.detectPosition),
       detectSize: readBool('detectSize', base.detectSize),
       detectText: readBool('detectText', base.detectText),
+      enableSound: readBool('enableSound', base.enableSound),
       precision: nextPrecision,
     );
   }
@@ -110,6 +117,7 @@ class Settings {
       other.detectPosition == detectPosition &&
       other.detectSize == detectSize &&
       other.detectText == detectText &&
+      other.enableSound == enableSound &&
       other.precision == precision;
 
   @override
@@ -119,10 +127,11 @@ class Settings {
         detectPosition,
         detectSize,
         detectText,
+        enableSound,
         precision,
       );
 
   @override
   String toString() =>
-      'Settings(color:$detectColor, shape:$detectShape, pos:$detectPosition, size:$detectSize, text:$detectText, precision:$precision)';
+      'Settings(color:$detectColor, shape:$detectShape, pos:$detectPosition, size:$detectSize, text:$detectText, sound:$enableSound, precision:$precision)';
 }
