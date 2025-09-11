@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:diffapp/image_pipeline.dart';
 import 'package:diffapp/screens/rect_select_page.dart';
 import 'package:diffapp/screens/image_select_page.dart';
+import 'package:diffapp/sound_effects.dart';
 
 class ComparePage extends StatefulWidget {
   final SelectedImage left;
@@ -23,6 +24,8 @@ class _ComparePageState extends State<ComparePage>
   late final Animation<double> _scale;
 
   void _startDetection(BuildContext context) {
+    // 効果音
+    Sfx.instance.play('start');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -37,6 +40,7 @@ class _ComparePageState extends State<ComparePage>
       _leftRect = null;
       _rightRect = null;
     });
+    Sfx.instance.play('reset');
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('最初からやりなおします')),
     );
