@@ -15,14 +15,16 @@ class SelectedImage {
 class ImageSelectPage extends StatelessWidget {
   final String title;
   final PermissionService permissionService;
-  const ImageSelectPage({super.key, required this.title, PermissionService? permissionService})
+  const ImageSelectPage(
+      {super.key, required this.title, PermissionService? permissionService})
       : permissionService = permissionService ?? const BasicPermissionService();
 
   void _pick(BuildContext context, SelectedImage img) {
     Navigator.of(context).pop(img);
   }
 
-  Future<void> _handleDenied(BuildContext context, {required String target}) async {
+  Future<void> _handleDenied(BuildContext context,
+      {required String target}) async {
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       SnackBar(

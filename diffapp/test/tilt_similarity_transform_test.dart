@@ -20,12 +20,14 @@ void main() {
       const Point2(0, 10),
       const Point2(5, 7),
     ];
-    final sTrue = 2.0;
-    final radTrue = 30 * math.pi / 180;
-    final txTrue = 5.0;
-    final tyTrue = -3.0;
+    const sTrue = 2.0;
+    const radTrue = 30 * math.pi / 180;
+    const txTrue = 5.0;
+    const tyTrue = -3.0;
 
-    final dst = src.map((p) => _rotScaleTrans(p, sTrue, radTrue, txTrue, tyTrue)).toList();
+    final dst = src
+        .map((p) => _rotScaleTrans(p, sTrue, radTrue, txTrue, tyTrue))
+        .toList();
 
     final est = estimateSimilarityTransform(src, dst);
     expect(est.scale, closeTo(sTrue, 1e-9));
@@ -51,4 +53,3 @@ void main() {
     expect(() => estimateSimilarityTransform(a, b), throwsArgumentError);
   });
 }
-

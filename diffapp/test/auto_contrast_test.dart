@@ -26,9 +26,10 @@ void main() {
     });
 
     test('範囲外値（<0 or >255）はエラー', () {
-      expect(() => applyAutoContrastIfEnabled([-1, 0, 1], enabled: true), throwsArgumentError);
-      expect(() => applyAutoContrastIfEnabled([0, 256], enabled: true), throwsArgumentError);
+      expect(() => applyAutoContrastIfEnabled([-1, 0, 1], enabled: true),
+          throwsArgumentError);
+      expect(() => applyAutoContrastIfEnabled([0, 256], enabled: true),
+          throwsArgumentError);
     });
   });
 }
-

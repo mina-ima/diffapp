@@ -22,7 +22,8 @@ class SemVer implements Comparable<SemVer> {
     if (parts.length < 3) {
       throw FormatException('Invalid semver: $input');
     }
-    int parseInt(String s) => int.tryParse(s.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    int parseInt(String s) =>
+        int.tryParse(s.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
     return SemVer(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
   }
 
@@ -41,9 +42,14 @@ class SemVer implements Comparable<SemVer> {
 /// ">=3.4.0 <4.0.0". Supports ">=", ">", "<=", "<", "=="/"=".
 bool satisfiesConstraint(String versionStr, String constraintStr) {
   final v = SemVer.parse(versionStr);
-  final tokens = constraintStr.trim().split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+  final tokens = constraintStr
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((t) => t.isNotEmpty)
+      .toList();
   for (final token in tokens) {
-    final m = RegExp(r'^(>=|>|<=|<|==|=)([0-9]+\.[0-9]+\.[0-9]+)').firstMatch(token);
+    final m =
+        RegExp(r'^(>=|>|<=|<|==|=)([0-9]+\.[0-9]+\.[0-9]+)').firstMatch(token);
     if (m == null) {
       // skip unrecognized token (e.g., stray characters)
       continue;
@@ -75,7 +81,8 @@ bool satisfiesConstraint(String versionStr, String constraintStr) {
 
 String? _extractSdkConstraintFromPubspec(String yaml) {
   // naive: find a line like: sdk: ">=3.4.0 <4.0.0"
-  final match = RegExp(r'^\s*sdk:\s*"([^"]+)"', multiLine: true).firstMatch(yaml);
+  final match =
+      RegExp(r'^\s*sdk:\s*"([^"]+)"', multiLine: true).firstMatch(yaml);
   return match?.group(1);
 }
 
@@ -106,12 +113,14 @@ Future<SdkCompatResult> checkCompatibilityFromFiles({
   final sdkConstraint = _extractSdkConstraintFromPubspec(pubspec);
   if (sdkConstraint == null) {
     return const SdkCompatResult(false, 'pubspec.yaml の sdk 範囲が見つかりません');
-    }
+  }
 
-  final cfg = jsonDecode(await File(fvmConfigPath).readAsString()) as Map<String, dynamic>;
+  final cfg = jsonDecode(await File(fvmConfigPath).readAsString())
+      as Map<String, dynamic>;
   final flutterVersion = cfg['flutterSdkVersion']?.toString();
   if (flutterVersion == null || flutterVersion.isEmpty) {
-    return const SdkCompatResult(false, 'fvm_config.json の flutterSdkVersion が不明');
+    return const SdkCompatResult(
+        false, 'fvm_config.json の flutterSdkVersion が不明');
   }
 
   final dartVersion = _dartVersionForFlutter(flutterVersion);

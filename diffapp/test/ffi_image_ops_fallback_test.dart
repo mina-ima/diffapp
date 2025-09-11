@@ -2,7 +2,9 @@ import 'package:diffapp/ffi/image_ops.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('FfiImageOps falls back to Dart and matches results (SSIM, threshold, CC)', () {
+  test(
+      'FfiImageOps falls back to Dart and matches results (SSIM, threshold, CC)',
+      () {
     const w = 8, h = 8;
     final a = List<int>.filled(w * h, 128);
     final b = List<int>.from(a);
@@ -33,9 +35,10 @@ void main() {
     final binF = ffiOps.thresholdBinary(normD, 0.5);
     expect(binF, equals(binD));
 
-    final boxesD = dartOps.connectedComponentsBoundingBoxes(binD, w, h, eightConnected: true, minArea: 2);
-    final boxesF = ffiOps.connectedComponentsBoundingBoxes(binD, w, h, eightConnected: true, minArea: 2);
+    final boxesD = dartOps.connectedComponentsBoundingBoxes(binD, w, h,
+        eightConnected: true, minArea: 2);
+    final boxesF = ffiOps.connectedComponentsBoundingBoxes(binD, w, h,
+        eightConnected: true, minArea: 2);
     expect(boxesF, equals(boxesD));
   });
 }
-

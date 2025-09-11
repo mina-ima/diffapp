@@ -231,7 +231,8 @@ Point2 applySimilarityTransform(Point2 p, SimilarityTransform t) {
 /// - Behavior: if enabled, linearly stretch [min..max] to [0..255].
 ///   If min==max, returns a copy of the original values.
 /// - If disabled, returns a copy of [values] unchanged.
-List<int> applyAutoContrastIfEnabled(List<int> values, {required bool enabled}) {
+List<int> applyAutoContrastIfEnabled(List<int> values,
+    {required bool enabled}) {
   final out = List<int>.from(values);
   if (!enabled) return out;
   if (out.isEmpty) return out;

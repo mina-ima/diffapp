@@ -4,7 +4,9 @@ import 'bindings.dart';
 abstract class ImageOps {
   // RGB24 -> Gray8
   List<int> rgbToGrayscaleU8(List<int> rgb, int width, int height);
-  List<double> computeSsimMapUint8(List<int> imgA, List<int> imgB, int width, int height, {int windowRadius = 1});
+  List<double> computeSsimMapUint8(
+      List<int> imgA, List<int> imgB, int width, int height,
+      {int windowRadius = 1});
   List<double> normalizeToUnit(List<double> values);
   List<int> thresholdBinary(List<double> values, double threshold);
   List<ip.IntRect> connectedComponentsBoundingBoxes(
@@ -35,20 +37,28 @@ class DartImageOps implements ImageOps {
     }
     return out;
   }
-  @override
-  List<double> computeSsimMapUint8(List<int> imgA, List<int> imgB, int width, int height, {int windowRadius = 1}) =>
-      ip.computeSsimMapUint8(imgA, imgB, width, height, windowRadius: windowRadius);
 
   @override
-  List<double> normalizeToUnit(List<double> values) => ip.normalizeToUnit(values);
+  List<double> computeSsimMapUint8(
+          List<int> imgA, List<int> imgB, int width, int height,
+          {int windowRadius = 1}) =>
+      ip.computeSsimMapUint8(imgA, imgB, width, height,
+          windowRadius: windowRadius);
 
   @override
-  List<int> thresholdBinary(List<double> values, double threshold) => ip.thresholdBinary(values, threshold);
+  List<double> normalizeToUnit(List<double> values) =>
+      ip.normalizeToUnit(values);
 
   @override
-  List<ip.IntRect> connectedComponentsBoundingBoxes(List<int> binary, int width, int height,
+  List<int> thresholdBinary(List<double> values, double threshold) =>
+      ip.thresholdBinary(values, threshold);
+
+  @override
+  List<ip.IntRect> connectedComponentsBoundingBoxes(
+          List<int> binary, int width, int height,
           {bool eightConnected = true, int minArea = 1}) =>
-      ip.connectedComponentsBoundingBoxes(binary, width, height, eightConnected: eightConnected, minArea: minArea);
+      ip.connectedComponentsBoundingBoxes(binary, width, height,
+          eightConnected: eightConnected, minArea: minArea);
 }
 
 /// FFI 実装の土台。現時点ではDart実装にフォールバックする。
@@ -66,9 +76,12 @@ class FfiImageOps implements ImageOps {
   }
 
   @override
-  List<double> computeSsimMapUint8(List<int> imgA, List<int> imgB, int width, int height, {int windowRadius = 1}) {
+  List<double> computeSsimMapUint8(
+      List<int> imgA, List<int> imgB, int width, int height,
+      {int windowRadius = 1}) {
     // TODO: 後日 FFI 呼び出しに置換
-    return _fallback.computeSsimMapUint8(imgA, imgB, width, height, windowRadius: windowRadius);
+    return _fallback.computeSsimMapUint8(imgA, imgB, width, height,
+        windowRadius: windowRadius);
   }
 
   @override
@@ -84,7 +97,8 @@ class FfiImageOps implements ImageOps {
   }
 
   @override
-  List<ip.IntRect> connectedComponentsBoundingBoxes(List<int> binary, int width, int height,
+  List<ip.IntRect> connectedComponentsBoundingBoxes(
+      List<int> binary, int width, int height,
       {bool eightConnected = true, int minArea = 1}) {
     // TODO: 後日 FFI 呼び出しに置換
     return _fallback.connectedComponentsBoundingBoxes(binary, width, height,

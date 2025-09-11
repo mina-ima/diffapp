@@ -7,7 +7,8 @@ class _FakePermissionService implements PermissionService {
   bool opened = false;
   final bool cameraGranted;
   final bool galleryGranted;
-  _FakePermissionService({required this.cameraGranted, required this.galleryGranted});
+  _FakePermissionService(
+      {required this.cameraGranted, required this.galleryGranted});
 
   @override
   Future<void> openAppSettings() async {
@@ -15,18 +16,20 @@ class _FakePermissionService implements PermissionService {
   }
 
   @override
-  Future<PermissionResult> requestCamera() async =>
-      PermissionResult(granted: cameraGranted, permanentlyDenied: !cameraGranted);
+  Future<PermissionResult> requestCamera() async => PermissionResult(
+      granted: cameraGranted, permanentlyDenied: !cameraGranted);
 
   @override
-  Future<PermissionResult> requestGallery() async =>
-      PermissionResult(granted: galleryGranted, permanentlyDenied: !galleryGranted);
+  Future<PermissionResult> requestGallery() async => PermissionResult(
+      granted: galleryGranted, permanentlyDenied: !galleryGranted);
 }
 
 void main() {
-  testWidgets('権限拒否時に設定アプリへの導線が表示され、押下で openAppSettings が呼ばれる（カメラ）', (tester) async {
+  testWidgets('権限拒否時に設定アプリへの導線が表示され、押下で openAppSettings が呼ばれる（カメラ）',
+      (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1000));
-    final fake = _FakePermissionService(cameraGranted: false, galleryGranted: true);
+    final fake =
+        _FakePermissionService(cameraGranted: false, galleryGranted: true);
 
     await tester.pumpWidget(MaterialApp(
       home: ImageSelectPage(title: '選択', permissionService: fake),
@@ -37,7 +40,8 @@ void main() {
     await tester.pump();
 
     // SnackBar が表示される
-    expect(find.textContaining('カメラ へのアクセスが必要です', findRichText: true), findsOneWidget);
+    expect(find.textContaining('カメラ へのアクセスが必要です', findRichText: true),
+        findsOneWidget);
     expect(find.byType(SnackBarAction), findsOneWidget);
 
     // SnackBarAction の onPressed を直接呼ぶ（オフスクリーンでも確実に検証）
@@ -47,9 +51,11 @@ void main() {
     expect(fake.opened, isTrue);
   });
 
-  testWidgets('権限拒否時に設定アプリへの導線が表示され、押下で openAppSettings が呼ばれる（ギャラリー）', (tester) async {
+  testWidgets('権限拒否時に設定アプリへの導線が表示され、押下で openAppSettings が呼ばれる（ギャラリー）',
+      (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1000));
-    final fake = _FakePermissionService(cameraGranted: true, galleryGranted: false);
+    final fake =
+        _FakePermissionService(cameraGranted: true, galleryGranted: false);
 
     await tester.pumpWidget(MaterialApp(
       home: ImageSelectPage(title: '選択', permissionService: fake),
@@ -60,7 +66,8 @@ void main() {
     await tester.pump();
 
     // SnackBar が表示される
-    expect(find.textContaining('写真 へのアクセスが必要です', findRichText: true), findsOneWidget);
+    expect(find.textContaining('写真 へのアクセスが必要です', findRichText: true),
+        findsOneWidget);
     expect(find.byType(SnackBarAction), findsOneWidget);
     final action = tester.widget<SnackBarAction>(find.byType(SnackBarAction));
     action.onPressed();

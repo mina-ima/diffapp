@@ -9,13 +9,14 @@ void main() {
     final det = FfiCnnDetector();
     await det.load(Uint8List(0));
     const w = 12, h = 8;
-    final diffMap = List<double>.filled(w*h, 0.1);
-    for (var y=2; y<=3; y++) {
-      for (var x=5; x<=6; x++) {
-        diffMap[y*w+x] = 0.95;
+    final diffMap = List<double>.filled(w * h, 0.1);
+    for (var y = 2; y <= 3; y++) {
+      for (var x = 5; x <= 6; x++) {
+        diffMap[y * w + x] = 0.95;
       }
     }
-    final r = det.detectFromDiffMap(diffMap, w, h, settings: Settings.initial());
+    final r =
+        det.detectFromDiffMap(diffMap, w, h, settings: Settings.initial());
     expect(r, isNotEmpty);
   });
 }

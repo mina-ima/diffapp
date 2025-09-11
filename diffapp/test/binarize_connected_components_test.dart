@@ -19,10 +19,12 @@ void main() {
         }
       }
     }
+
     setBlock(1, 1);
     setBlock(5, 4);
 
-    final boxes = connectedComponentsBoundingBoxes(bin, w, h, eightConnected: true);
+    final boxes =
+        connectedComponentsBoundingBoxes(bin, w, h, eightConnected: true);
     expect(boxes.length, 2);
     // Order is not guaranteed; sort by left/top for assertion.
     boxes.sort((a, b) => a.left != b.left ? a.left - b.left : a.top - b.top);
@@ -47,7 +49,8 @@ void main() {
       }
     }
 
-    final boxes = connectedComponentsBoundingBoxes(bin, w, h, eightConnected: true, minArea: 2);
+    final boxes = connectedComponentsBoundingBoxes(bin, w, h,
+        eightConnected: true, minArea: 2);
     expect(boxes.length, 1);
     final b = boxes.first;
     expect(b.left, 3);
@@ -56,4 +59,3 @@ void main() {
     expect(b.height, 2);
   });
 }
-

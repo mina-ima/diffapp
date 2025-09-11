@@ -16,4 +16,3 @@ void main() {
     expect(g2, equals(g1));
   });
 }
-

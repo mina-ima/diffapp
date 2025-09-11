@@ -32,4 +32,3 @@ void main() {
     expect(find.byKey(const Key('highlight-right')), findsOneWidget);
   });
 }
-

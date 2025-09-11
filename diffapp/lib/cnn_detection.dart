@@ -9,7 +9,8 @@ class Detection {
   final IntRect box;
   final double score;
   final DetectionCategory category;
-  const Detection({required this.box, required this.score, required this.category});
+  const Detection(
+      {required this.box, required this.score, required this.category});
 }
 
 abstract class CnnDetector {
@@ -134,7 +135,11 @@ class FfiCnnDetector implements CnnDetector {
 
   @override
   List<Detection> detectFromDiffMap(List<double> diffMap, int width, int height,
-          {required Settings settings, int maxOutputs = 20, double iouThreshold = 0.5}) =>
+          {required Settings settings,
+          int maxOutputs = 20,
+          double iouThreshold = 0.5}) =>
       _fallback.detectFromDiffMap(diffMap, width, height,
-          settings: settings, maxOutputs: maxOutputs, iouThreshold: iouThreshold);
+          settings: settings,
+          maxOutputs: maxOutputs,
+          iouThreshold: iouThreshold);
 }

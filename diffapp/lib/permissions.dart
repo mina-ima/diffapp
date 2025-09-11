@@ -1,7 +1,8 @@
 class PermissionResult {
   final bool granted;
   final bool permanentlyDenied;
-  const PermissionResult({required this.granted, this.permanentlyDenied = false});
+  const PermissionResult(
+      {required this.granted, this.permanentlyDenied = false});
 }
 
 abstract class PermissionService {
@@ -15,12 +16,13 @@ class BasicPermissionService implements PermissionService {
   const BasicPermissionService();
 
   @override
-  Future<PermissionResult> requestCamera() async => const PermissionResult(granted: true);
+  Future<PermissionResult> requestCamera() async =>
+      const PermissionResult(granted: true);
 
   @override
-  Future<PermissionResult> requestGallery() async => const PermissionResult(granted: true);
+  Future<PermissionResult> requestGallery() async =>
+      const PermissionResult(granted: true);
 
   @override
   Future<void> openAppSettings() async {/* no-op */}
 }
-
