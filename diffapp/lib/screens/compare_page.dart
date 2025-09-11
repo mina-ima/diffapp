@@ -11,6 +11,8 @@ class ComparePage extends StatefulWidget {
   final IntRect? initialRightRect;
   // テスト・デモ用のフック：モデル読込失敗をシミュレート
   final bool simulateModelLoadFailure;
+  // テスト・デモ用のフック：タイムアウトをシミュレート
+  final bool simulateTimeout;
 
   const ComparePage({
     super.key,
@@ -19,6 +21,7 @@ class ComparePage extends StatefulWidget {
     this.initialLeftRect,
     this.initialRightRect,
     this.simulateModelLoadFailure = false,
+    this.simulateTimeout = false,
   });
 
   @override
@@ -41,6 +44,14 @@ class _ComparePageState extends State<ComparePage>
     if (widget.simulateModelLoadFailure) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('けんさに しっぱいしました。もういちどためしてね')),
+      );
+      return;
+    }
+
+    // タイムアウトをシミュレート（テスト用）
+    if (widget.simulateTimeout) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('じかんぎれです。もういちどためしてね')),
       );
       return;
     }
