@@ -160,6 +160,7 @@ UI/UXテスト
 	•	Dart/Flutter バージョン互換チェック（`test/sdk_compat_test.dart`）
 	•	ホーム→左右選択→比較画面までの一連のフロー（ウィジェットテスト）
 	•	画像入力（拡張子判定・最大解像度クランプ）の単体テスト
+	•	範囲指定（左）→保存→比較画面に選択が反映されるフロー（`test/rect_select_apply_flow_test.dart`）
 
 ⸻
 
