@@ -3,6 +3,7 @@ import 'package:diffapp/image_pipeline.dart';
 import 'package:diffapp/screens/rect_select_page.dart';
 import 'package:diffapp/screens/image_select_page.dart';
 import 'package:diffapp/sound_effects.dart';
+import 'package:diffapp/logger.dart';
 
 class ComparePage extends StatefulWidget {
   final SelectedImage left;
@@ -13,6 +14,8 @@ class ComparePage extends StatefulWidget {
   final bool simulateModelLoadFailure;
   // テスト・デモ用のフック：タイムアウトをシミュレート
   final bool simulateTimeout;
+  // テスト・デモ用のフック：内部例外をシミュレート
+  final bool simulateInternalError;
 
   const ComparePage({
     super.key,
@@ -22,6 +25,7 @@ class ComparePage extends StatefulWidget {
     this.initialRightRect,
     this.simulateModelLoadFailure = false,
     this.simulateTimeout = false,
+    this.simulateInternalError = false,
   });
 
   @override
@@ -53,6 +57,19 @@ class _ComparePageState extends State<ComparePage>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('じかんぎれです。もういちどためしてね')),
       );
+      return;
+    }
+
+    // 内部例外をシミュレート（テスト用）
+    if (widget.simulateInternalError) {
+      try {
+        throw Exception('simulated internal error');
+      } catch (e, st) {
+        AppLog.instance.record(e, st, tag: 'detection');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('エラーが おきました。もういちどためしてね')),
+        );
+      }
       return;
     }
 
