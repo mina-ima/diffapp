@@ -1,6 +1,6 @@
-/// Minimal image pipeline helpers.
-///
-/// For now this is pure-Dart logic to enable TDD without native deps.
+// Minimal image pipeline helpers.
+//
+// For now this is pure-Dart logic to enable TDD without native deps.
 
 class Dimensions {
   final int width;
@@ -50,7 +50,12 @@ class IntRect {
   final int width;
   final int height;
 
-  const IntRect({required this.left, required this.top, required this.width, required this.height});
+  const IntRect({
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+  });
 
   int get right => left + width;
   int get bottom => top + height;
@@ -87,7 +92,11 @@ IntRect scaleRectForResizedImage(
   if (rect.right > originalWidth || rect.bottom > originalHeight) {
     throw ArgumentError('rect exceeds original image bounds');
   }
-  final dims = calculateResizeDimensions(originalWidth, originalHeight, targetMaxWidth: targetMaxWidth);
+  final dims = calculateResizeDimensions(
+    originalWidth,
+    originalHeight,
+    targetMaxWidth: targetMaxWidth,
+  );
   if (dims.width == originalWidth) {
     return rect;
   }
@@ -111,7 +120,10 @@ IntRect scaleRectBetweenSpaces(
   if (fromWidth <= 0 || fromHeight <= 0 || toWidth <= 0 || toHeight <= 0) {
     throw ArgumentError('dimensions must be positive');
   }
-  if (rect.left < 0 || rect.top < 0 || rect.right > fromWidth || rect.bottom > fromHeight) {
+  if (rect.left < 0 ||
+      rect.top < 0 ||
+      rect.right > fromWidth ||
+      rect.bottom > fromHeight) {
     throw ArgumentError('rect exceeds source bounds');
   }
   final scaleX = toWidth / fromWidth;

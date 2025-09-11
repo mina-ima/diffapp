@@ -14,8 +14,10 @@ void main() {
     });
 
     test('copyWith toggles and precision update', () {
-      final s = Settings.initial()
-          .copyWith(detectText: false, precision: Settings.maxPrecision);
+      final s = Settings.initial().copyWith(
+        detectText: false,
+        precision: Settings.maxPrecision,
+      );
       expect(s.detectText, isFalse);
       expect(s.precision, Settings.maxPrecision);
     });
@@ -39,9 +41,7 @@ void main() {
 
     test('fromMap merges with defaults and validates precision', () {
       final base = Settings.initial();
-      final s = Settings.fromMap({
-        'detectColor': false,
-      });
+      final s = Settings.fromMap({'detectColor': false});
       expect(s.detectColor, isFalse);
       expect(s.detectShape, base.detectShape);
       expect(s.precision, base.precision);
@@ -58,4 +58,3 @@ void main() {
     });
   });
 }
-

@@ -38,9 +38,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _openSettings() async {
     final result = await Navigator.of(context).push<Settings>(
-      MaterialPageRoute(
-        builder: (_) => SettingsPage(initial: _settings),
-      ),
+      MaterialPageRoute(builder: (_) => SettingsPage(initial: _settings)),
     );
     if (result != null) {
       setState(() => _settings = result);
@@ -65,14 +63,40 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Center(
+              child: Column(
+                children: [
+                  // 簡易ロゴ（将来画像に置換可）
+                  const FlutterLogo(key: Key('app-logo'), size: 72),
+                  const SizedBox(height: 8),
+                  Text(
+                    'AIがちがいをみつけるよ',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             Text('画像をえらんでね', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Expanded(
               child: Row(
                 children: [
-                  Expanded(child: _imageCard(side: '左', value: _leftImage, onPick: () => _pick('left'))),
+                  Expanded(
+                    child: _imageCard(
+                      side: '左',
+                      value: _leftImage,
+                      onPick: () => _pick('left'),
+                    ),
+                  ),
                   const SizedBox(width: 12),
-                  Expanded(child: _imageCard(side: '右', value: _rightImage, onPick: () => _pick('right'))),
+                  Expanded(
+                    child: _imageCard(
+                      side: '右',
+                      value: _rightImage,
+                      onPick: () => _pick('right'),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -94,14 +118,20 @@ class _HomePageState extends State<HomePage> {
               label: const Text('けんさをはじめる'),
             ),
             const SizedBox(height: 8),
-            Text('現在の設定: 精度${_settings.precision} / 色:${_settings.detectColor} 形:${_settings.detectShape} 場所:${_settings.detectPosition} 大きさ:${_settings.detectSize} 文字:${_settings.detectText}'),
+            Text(
+              '現在の設定: 精度${_settings.precision} / 色:${_settings.detectColor} 形:${_settings.detectShape} 場所:${_settings.detectPosition} 大きさ:${_settings.detectSize} 文字:${_settings.detectText}',
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _imageCard({required String side, required String? value, required VoidCallback onPick}) {
+  Widget _imageCard({
+    required String side,
+    required SelectedImage? value,
+    required VoidCallback onPick,
+  }) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -110,12 +140,9 @@ class _HomePageState extends State<HomePage> {
           children: [
             const Icon(Icons.image, size: 64, color: Colors.grey),
             const SizedBox(height: 8),
-            Text('$side 画像: ${value ?? '未選択'}'),
+            Text('$side 画像: ${value?.label ?? '未選択'}'),
             const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: onPick,
-              child: Text('$side の画像を選ぶ'),
-            ),
+            OutlinedButton(onPressed: onPick, child: Text('$side の画像を選ぶ')),
           ],
         ),
       ),
@@ -125,9 +152,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _pick(String side) async {
     final title = side == 'left' ? '左の画像を選ぶ' : '右の画像を選ぶ';
     final result = await Navigator.of(context).push<SelectedImage>(
-      MaterialPageRoute(
-        builder: (_) => ImageSelectPage(title: title),
-      ),
+      MaterialPageRoute(builder: (_) => ImageSelectPage(title: title)),
     );
     if (result != null) {
       setState(() {

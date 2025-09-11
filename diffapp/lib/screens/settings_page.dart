@@ -54,7 +54,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       body: ListView(
         children: [
-          _SectionTitle('検出項目'),
+          const _SectionTitle('検出項目'),
           CheckboxListTile(
             title: const Text('色'),
             value: _settings.detectColor,
@@ -68,7 +68,8 @@ class _SettingsPageState extends State<SettingsPage> {
           CheckboxListTile(
             title: const Text('場所'),
             value: _settings.detectPosition,
-            onChanged: (bool? v) => _update(position: v ?? _settings.detectPosition),
+            onChanged: (bool? v) =>
+                _update(position: v ?? _settings.detectPosition),
           ),
           CheckboxListTile(
             title: const Text('大きさ'),
@@ -81,7 +82,7 @@ class _SettingsPageState extends State<SettingsPage> {
             onChanged: (bool? v) => _update(text: v ?? _settings.detectText),
           ),
           const Divider(height: 24),
-          _SectionTitle('精度'),
+          const _SectionTitle('精度'),
           ListTile(
             title: Row(
               children: [
@@ -116,11 +117,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
+      child: Text(text, style: Theme.of(context).textTheme.titleMedium),
     );
   }
 }
-

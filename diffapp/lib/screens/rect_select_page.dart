@@ -29,7 +29,9 @@ class _RectSelectPageState extends State<RectSelectPage> {
   @override
   void initState() {
     super.initState();
-    _rect = widget.initialRect ?? const IntRect(left: 100, top: 80, width: 300, height: 200);
+    _rect =
+        widget.initialRect ??
+        const IntRect(left: 100, top: 80, width: 300, height: 200);
   }
 
   void _save() {
@@ -68,9 +70,7 @@ class _RectSelectPageState extends State<RectSelectPage> {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 8),
-            Expanded(
-              child: _editMode ? _buildEditable() : _buildZoomable(),
-            ),
+            Expanded(child: _editMode ? _buildEditable() : _buildZoomable()),
           ],
         ),
       ),
@@ -88,10 +88,7 @@ class _RectSelectPageState extends State<RectSelectPage> {
             width: viewW,
             height: viewH,
             child: Stack(
-              children: [
-                _imagePlaceholder(),
-                _buildDraggableRect(scale),
-              ],
+              children: [_imagePlaceholder(), _buildDraggableRect(scale)],
             ),
           ),
         );
@@ -114,10 +111,7 @@ class _RectSelectPageState extends State<RectSelectPage> {
               minScale: 1,
               maxScale: 4,
               child: Stack(
-                children: [
-                  _imagePlaceholder(),
-                  _buildRectOnly(scale),
-                ],
+                children: [_imagePlaceholder(), _buildRectOnly(scale)],
               ),
             ),
           ),
@@ -156,7 +150,7 @@ class _RectSelectPageState extends State<RectSelectPage> {
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: Colors.redAccent, width: 2),
-            color: Colors.redAccent.withOpacity(0.08),
+            color: Colors.redAccent.withValues(alpha: 0.08),
           ),
         ),
       ),
@@ -196,7 +190,7 @@ class _RectSelectPageState extends State<RectSelectPage> {
               child: Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.redAccent, width: 2),
-                  color: Colors.redAccent.withOpacity(0.08),
+                  color: Colors.redAccent.withValues(alpha: 0.08),
                 ),
                 child: const Center(
                   child: Icon(Icons.drag_indicator, color: Colors.redAccent),
@@ -289,10 +283,14 @@ class _RectSelectPageState extends State<RectSelectPage> {
     double top = _rect.top.toDouble();
     double bottom = _rect.bottom.toDouble();
 
-    bool affectsLeft = h == _ResizeHandle.tl || h == _ResizeHandle.l || h == _ResizeHandle.bl;
-    bool affectsRight = h == _ResizeHandle.tr || h == _ResizeHandle.r || h == _ResizeHandle.br;
-    bool affectsTop = h == _ResizeHandle.tl || h == _ResizeHandle.t || h == _ResizeHandle.tr;
-    bool affectsBottom = h == _ResizeHandle.bl || h == _ResizeHandle.b || h == _ResizeHandle.br;
+    bool affectsLeft =
+        h == _ResizeHandle.tl || h == _ResizeHandle.l || h == _ResizeHandle.bl;
+    bool affectsRight =
+        h == _ResizeHandle.tr || h == _ResizeHandle.r || h == _ResizeHandle.br;
+    bool affectsTop =
+        h == _ResizeHandle.tl || h == _ResizeHandle.t || h == _ResizeHandle.tr;
+    bool affectsBottom =
+        h == _ResizeHandle.bl || h == _ResizeHandle.b || h == _ResizeHandle.br;
 
     if (affectsLeft) left += dxImage;
     if (affectsRight) right += dxImage;

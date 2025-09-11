@@ -19,17 +19,19 @@ class Settings {
     required this.detectSize,
     required this.detectText,
     required this.precision,
-  }) : assert(precision >= minPrecision && precision <= maxPrecision,
-            'precision must be within $minPrecision..$maxPrecision');
+  }) : assert(
+         precision >= minPrecision && precision <= maxPrecision,
+         'precision must be within $minPrecision..$maxPrecision',
+       );
 
   factory Settings.initial() => const Settings(
-        detectColor: true,
-        detectShape: true,
-        detectPosition: true,
-        detectSize: true,
-        detectText: true,
-        precision: defaultPrecision,
-      );
+    detectColor: true,
+    detectShape: true,
+    detectPosition: true,
+    detectSize: true,
+    detectText: true,
+    precision: defaultPrecision,
+  );
 
   Settings copyWith({
     bool? detectColor,
@@ -41,7 +43,9 @@ class Settings {
   }) {
     final nextPrecision = precision ?? this.precision;
     if (nextPrecision < minPrecision || nextPrecision > maxPrecision) {
-      throw ArgumentError('precision must be within $minPrecision..$maxPrecision');
+      throw ArgumentError(
+        'precision must be within $minPrecision..$maxPrecision',
+      );
     }
     return Settings(
       detectColor: detectColor ?? this.detectColor,
@@ -54,13 +58,13 @@ class Settings {
   }
 
   Map<String, dynamic> toMap() => {
-        'detectColor': detectColor,
-        'detectShape': detectShape,
-        'detectPosition': detectPosition,
-        'detectSize': detectSize,
-        'detectText': detectText,
-        'precision': precision,
-      };
+    'detectColor': detectColor,
+    'detectShape': detectShape,
+    'detectPosition': detectPosition,
+    'detectSize': detectSize,
+    'detectText': detectText,
+    'precision': precision,
+  };
 
   String toJson() => jsonEncode(toMap());
 
@@ -69,7 +73,9 @@ class Settings {
     final base = Settings.initial();
     final int nextPrecision = (map['precision'] ?? base.precision) as int;
     if (nextPrecision < minPrecision || nextPrecision > maxPrecision) {
-      throw ArgumentError('precision must be within $minPrecision..$maxPrecision');
+      throw ArgumentError(
+        'precision must be within $minPrecision..$maxPrecision',
+      );
     }
     bool readBool(String key, bool def) {
       final v = map[key];
@@ -108,16 +114,15 @@ class Settings {
 
   @override
   int get hashCode => Object.hash(
-        detectColor,
-        detectShape,
-        detectPosition,
-        detectSize,
-        detectText,
-        precision,
-      );
+    detectColor,
+    detectShape,
+    detectPosition,
+    detectSize,
+    detectText,
+    precision,
+  );
 
   @override
   String toString() =>
       'Settings(color:$detectColor, shape:$detectShape, pos:$detectPosition, size:$detectSize, text:$detectText, precision:$precision)';
 }
-
