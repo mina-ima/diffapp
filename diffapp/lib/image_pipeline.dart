@@ -254,3 +254,101 @@ List<IntRect> nonMaxSuppression(
   }
   return selected;
 }
+
+// -----------------------------
+// SSIM score map (grayscale)
+// -----------------------------
+
+/// Compute SSIM score map for two 8-bit grayscale images of identical size.
+/// Returns a list of doubles (per-pixel SSIM in [-1, 1], typically 0..1).
+/// Uses a square window with given [windowRadius] (default 1 => 3x3 window).
+List<double> computeSsimMapUint8(
+  List<int> imgA,
+  List<int> imgB,
+  int width,
+  int height, {
+  int windowRadius = 1,
+  double k1 = 0.01,
+  double k2 = 0.03,
+}) {
+  if (imgA.length != imgB.length) {
+    throw ArgumentError('imgA and imgB must have the same length');
+  }
+  if (width <= 0 || height <= 0) {
+    throw ArgumentError('width and height must be positive');
+  }
+  if (imgA.length != width * height) {
+    throw ArgumentError('image length must equal width*height');
+  }
+  if (windowRadius < 0) {
+    throw ArgumentError('windowRadius must be >= 0');
+  }
+
+  const L = 255.0;
+  final c1 = (k1 * L) * (k1 * L);
+  final c2 = (k2 * L) * (k2 * L);
+
+  final out = List<double>.filled(imgA.length, 0.0);
+  final wr = windowRadius;
+
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
+      // Accumulate local stats over window
+      double sumA = 0, sumB = 0, sumAA = 0, sumBB = 0, sumAB = 0;
+      int count = 0;
+      final y0 = (y - wr);
+      final y1 = (y + wr);
+      final x0 = (x - wr);
+      final x1 = (x + wr);
+      for (var yy = y0; yy <= y1; yy++) {
+        if (yy < 0 || yy >= height) continue;
+        final row = yy * width;
+        for (var xx = x0; xx <= x1; xx++) {
+          if (xx < 0 || xx >= width) continue;
+          final idx = row + xx;
+          final a = imgA[idx].toDouble();
+          final b = imgB[idx].toDouble();
+          sumA += a;
+          sumB += b;
+          sumAA += a * a;
+          sumBB += b * b;
+          sumAB += a * b;
+          count++;
+        }
+      }
+      if (count == 0) {
+        out[y * width + x] = 1.0;
+        continue;
+      }
+      final meanA = sumA / count;
+      final meanB = sumB / count;
+      final varA = sumAA / count - meanA * meanA;
+      final varB = sumBB / count - meanB * meanB;
+      final covAB = sumAB / count - meanA * meanB;
+
+      final num = (2 * meanA * meanB + c1) * (2 * covAB + c2);
+      final den = (meanA * meanA + meanB * meanB + c1) * (varA + varB + c2);
+
+      final ssim = den != 0.0 ? (num / den) : 1.0;
+      out[y * width + x] = ssim;
+    }
+  }
+  return out;
+}
+
+/// Normalize a list of doubles to [0.0, 1.0].
+/// If all values are the same, returns all zeros.
+List<double> normalizeToUnit(List<double> values) {
+  if (values.isEmpty) return <double>[];
+  var minV = values.first;
+  var maxV = values.first;
+  for (final v in values) {
+    if (v < minV) minV = v;
+    if (v > maxV) maxV = v;
+  }
+  final range = maxV - minV;
+  if (range == 0) {
+    return List<double>.filled(values.length, 0.0);
+  }
+  return values.map((v) => (v - minV) / range).toList();
+}
