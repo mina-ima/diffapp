@@ -45,8 +45,8 @@
   - [ ] Xcode プロジェクトに組込
   - [ ] Android Studio jniLibs に配置
 - [ ] TFLite ランタイム導入
-  - [ ] iOS Podfile に追加
-  - [ ] Android Gradle に追加
+  - [x] iOS Podfile に追加
+  - [x] Android Gradle に追加
   - [x] モデルを assets/models に配置
 - [ ] Dart ↔ C++ FFI 実装
   - [x] Dart 側のFFI土台（フォールバック実装）

@@ -54,3 +54,8 @@ android {
         }
     }
 }
+
+dependencies {
+    // TensorFlow Lite ランタイム
+    implementation("org.tensorflow:tensorflow-lite:2.14.0")
+}
