@@ -89,6 +89,7 @@ AIモデル	TensorFlow Lite（CNN）	形・文字認識補強
 	•	処理層：Dart → FFI経由でC++（OpenCV / TFLite）呼び出し
 		- 現状: FFI土台を用意し、Dart実装にフォールバック（`ffi/image_ops.dart`, `FfiCnnDetector`）
 		- C++サンプル関数: グレースケール変換 `to_grayscale_u8` を追加（Android NDK/CMake 設定済み。iOSは今後対応）
+		- Dart からの FFI 配線（Android）を実装し、`DefaultNativeOps` 経由で呼び出し可能にした（未接続環境は従来どおり Dart 実装にフォールバック）
 		- FFI呼び出し方針: `FfiImageOps` はネイティブ実装を優先し、未接続環境では Dart 実装へフォールバックできる注入構造を導入（単体テストで検証済み）
 		- 既定ネイティブ実装スタブ: `DefaultNativeOps` を追加。現段階では環境未接続時のフォールバック挙動のみ担保（今後 `to_grayscale_u8` へ接続）
 			- ネイティブ未接続環境で `DefaultNativeOps.rgbToGrayscaleU8` を直呼びした場合は `UnsupportedError` を投げる（`FfiImageOps` 経由では Dart 実装へ自動フォールバック）

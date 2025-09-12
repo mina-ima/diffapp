@@ -53,7 +53,7 @@
   - [x] グレースケール変換のC++サンプル関数とAndroid NDK/CMake設定（Dartからはフォールバックで動作確認）
   - [x] `FfiImageOps` がネイティブ実装を優先使用できる注入機構を追加（単体テストを実装）
   - [x] 既定ネイティブ実装スタブ `DefaultNativeOps` を追加（未接続環境では Dart 実装にフォールバックすることをテストで保証）
-  - [ ] OpenCV サンプル関数を Dart から呼び出す
+  - [x] OpenCV サンプル関数（代替の C++ グレースケール関数）を Dart から呼び出す（Android FFI 配線）
   - [ ] TFLite 推論を Dart から呼び出す
 
 ---

@@ -18,6 +18,18 @@ class DiffApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ButtonStyle(
+            minimumSize: MaterialStateProperty.all(const Size(48.0, 48.0)),
+            tapTargetSize: MaterialTapTargetSize.padded,
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: ButtonStyle(
+            minimumSize: MaterialStateProperty.all(const Size(48.0, 48.0)),
+            tapTargetSize: MaterialTapTargetSize.padded,
+          ),
+        ),
       ),
       home: const HomePage(),
     );
@@ -102,6 +114,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 12),
             ElevatedButton.icon(
+              key: const Key('start-inspect'),
               onPressed: _onStart,
               icon: const Icon(Icons.play_arrow),
               label: const Text('けんさをはじめる'),
@@ -149,7 +162,11 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 8),
             Text('$side 画像: ${value?.label ?? '未選択'}'),
             const SizedBox(height: 8),
-            OutlinedButton(onPressed: onPick, child: Text('$side の画像を選ぶ')),
+            OutlinedButton(
+              key: Key('pick_${side}_button'),
+              onPressed: onPick,
+              child: Text('$side の画像を選ぶ'),
+            ),
           ],
         ),
       ),
