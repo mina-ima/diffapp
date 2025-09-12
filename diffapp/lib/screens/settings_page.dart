@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:diffapp/settings.dart';
 import 'package:diffapp/screens/privacy_policy_page.dart';
+import 'package:diffapp/screens/licenses_page.dart';
 
 class SettingsPage extends StatefulWidget {
   final Settings initial;
@@ -94,10 +95,11 @@ class _SettingsPageState extends State<SettingsPage> {
           ListTile(
             leading: const Icon(Icons.article_outlined),
             title: const Text('OSS ライセンス'),
-            onTap: () => showLicensePage(
-              context: context,
-              applicationName: 'Diffapp',
-            ),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const OssLicensesPage()),
+              );
+            },
           ),
           ListTile(
             leading: const Icon(Icons.privacy_tip_outlined),
