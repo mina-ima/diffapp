@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:diffapp/settings.dart';
+import 'package:diffapp/screens/privacy_policy_page.dart';
 
 class SettingsPage extends StatefulWidget {
   final Settings initial;
@@ -97,6 +98,15 @@ class _SettingsPageState extends State<SettingsPage> {
               context: context,
               applicationName: 'Diffapp',
             ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: const Text('プライバシーポリシー'),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+              );
+            },
           ),
           const Divider(height: 24),
           const _SectionTitle('精度'),
