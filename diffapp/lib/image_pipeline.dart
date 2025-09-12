@@ -23,10 +23,11 @@ class Dimensions {
 /// Returns true if the given file name/path looks like a supported image.
 /// Supports: .jpg, .jpeg, .png (case-insensitive)
 bool isSupportedImageFormat(String name) {
-  if (name.isEmpty) return false;
-  final dot = name.lastIndexOf('.');
-  if (dot <= 0 || dot == name.length - 1) return false;
-  final ext = name.substring(dot + 1).toLowerCase();
+  final trimmed = name.trim();
+  if (trimmed.isEmpty) return false;
+  final dot = trimmed.lastIndexOf('.');
+  if (dot <= 0 || dot == trimmed.length - 1) return false;
+  final ext = trimmed.substring(dot + 1).toLowerCase();
   return ext == 'jpg' || ext == 'jpeg' || ext == 'png';
 }
 
