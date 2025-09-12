@@ -172,6 +172,7 @@ UI/UXテスト
 	•	範囲指定（左）→保存→比較画面に選択が反映されるフロー（`test/rect_select_apply_flow_test.dart`）
 	•	CI ワークフロー内の署名付きリリースジョブ存在確認（`test/ci_release_job_test.dart`）
 	•	CI ワークフロー内の解析/テスト/ビルドジョブ存在確認（`test/ci_analyze_build_jobs_test.dart`）
+	•	Android CMake に OpenCV 検出/リンクの雛形が含まれることを検証（`test/opencv_android_cmake_test.dart`）
 
 ⸻
 
