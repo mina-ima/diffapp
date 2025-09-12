@@ -296,14 +296,18 @@ class _ComparePageState extends State<ComparePage>
                     scale: _scale.value,
                     child: child,
                   ),
-                  child: Container(
-                    key: Key(isLeft ? 'highlight-left' : 'highlight-right'),
-                    width: 82,
-                    height: 82,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.redAccent, width: 3),
-                      color: Colors.redAccent.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(8),
+                  child: Semantics(
+                    label: '検出ハイライト',
+                    container: true,
+                    child: Container(
+                      key: Key(isLeft ? 'highlight-left' : 'highlight-right'),
+                      width: 82,
+                      height: 82,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.redAccent, width: 3),
+                        color: Colors.redAccent.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ),
