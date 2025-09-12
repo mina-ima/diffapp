@@ -22,4 +22,3 @@ void main() {
     expect(find.bySemanticsLabel('検出ハイライト'), findsNWidgets(2));
   });
 }
-

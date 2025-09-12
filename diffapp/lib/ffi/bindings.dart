@@ -59,21 +59,13 @@ class DefaultNativeOps implements ImageOpsNative {
 
   @override
   List<int> rgbToGrayscaleU8(List<int> rgb, int width, int height) {
-    // スタブ段階: BT.601 係数でグレースケールを算出（将来 FFI 呼び出しに置換）
-    if (width <= 0 || height <= 0) {
-      throw ArgumentError('width/height must be positive');
+    // ネイティブが未接続なら直呼びは未対応（FfiImageOps 側でフォールバックする想定）
+    if (!_avail) {
+      throw UnsupportedError('Native ImageOps is not available');
     }
-    if (rgb.length != width * height * 3) {
-      throw ArgumentError('rgb length must be width*height*3');
-    }
-    final out = List<int>.filled(width * height, 0);
-    for (var i = 0, j = 0; i < out.length; i++) {
-      final r = rgb[j++];
-      final g = rgb[j++];
-      final b = rgb[j++];
-      final y = (0.299 * r + 0.587 * g + 0.114 * b).round();
-      out[i] = y.clamp(0, 255);
-    }
-    return out;
+
+    // 将来的に FFI 実装（to_grayscale_u8）に接続する。
+    // 現段階ではダミー実装を避け、未実装として明示。
+    throw UnimplementedError('Native call wiring not yet connected');
   }
 }

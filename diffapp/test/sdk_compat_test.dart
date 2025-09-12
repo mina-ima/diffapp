@@ -29,5 +29,12 @@ void main() {
       expect(satisfiesConstraint('4.0.0', '>=3.4.0 <4.0.0'), isFalse);
       expect(satisfiesConstraint('3.3.9', '>=3.4.0 <4.0.0'), isFalse);
     });
+
+    test('セマンティックバージョンの範囲評価（空白入り ">= 3.4.0 < 4.0.0"）', () {
+      // オペレータとバージョンの間に空白が入っていても解釈できること
+      expect(satisfiesConstraint('3.4.0', '>= 3.4.0 < 4.0.0'), isTrue);
+      expect(satisfiesConstraint('3.4.3', '>= 3.4.0 < 4.0.0'), isTrue);
+      expect(satisfiesConstraint('4.0.0', '>= 3.4.0 < 4.0.0'), isFalse);
+    });
   });
 }

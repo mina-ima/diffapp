@@ -42,18 +42,10 @@ class SemVer implements Comparable<SemVer> {
 /// ">=3.4.0 <4.0.0". Supports ">=", ">", "<=", "<", "=="/"=".
 bool satisfiesConstraint(String versionStr, String constraintStr) {
   final v = SemVer.parse(versionStr);
-  final tokens = constraintStr
-      .trim()
-      .split(RegExp(r'\s+'))
-      .where((t) => t.isNotEmpty)
-      .toList();
-  for (final token in tokens) {
-    final m =
-        RegExp(r'^(>=|>|<=|<|==|=)([0-9]+\.[0-9]+\.[0-9]+)').firstMatch(token);
-    if (m == null) {
-      // skip unrecognized token (e.g., stray characters)
-      continue;
-    }
+  // オペレータとバージョンの間の空白を許容する。
+  final re = RegExp(r'(>=|>|<=|<|==|=)\s*([0-9]+\.[0-9]+\.[0-9]+)');
+  final matches = re.allMatches(constraintStr);
+  for (final m in matches) {
     final op = m.group(1)!;
     final rhs = SemVer.parse(m.group(2)!);
     final cmp = v.compareTo(rhs);
@@ -76,7 +68,8 @@ bool satisfiesConstraint(String versionStr, String constraintStr) {
         break;
     }
   }
-  return true;
+  // マッチが1つも無い場合は、制約の解釈に失敗したとみなし、保守的に false を返す。
+  return matches.isNotEmpty;
 }
 
 String? _extractSdkConstraintFromPubspec(String yaml) {
