@@ -8,6 +8,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  ffi: ^2.1.2
 
 dev_dependencies:
   flutter_test:
@@ -16,4 +17,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-

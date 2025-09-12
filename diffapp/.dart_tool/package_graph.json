@@ -7,6 +7,7 @@
       "name": "diffapp",
       "version": "0.0.0",
       "dependencies": [
+        "ffi",
         "flutter"
       ],
       "devDependencies": [
@@ -217,6 +218,11 @@
     {
       "name": "vm_service",
       "version": "15.0.2",
+      "dependencies": []
+    },
+    {
+      "name": "ffi",
+      "version": "2.1.4",
       "dependencies": []
     }
   ],

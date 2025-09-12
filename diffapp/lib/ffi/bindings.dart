@@ -1,5 +1,6 @@
 import 'dart:ffi' as ffi;
 import 'dart:io' show Platform;
+import 'package:ffi/ffi.dart' as pkg_ffi;
 
 /// ネイティブ実装のインタフェース。
 /// 単体テストで差し替え可能にするための抽象化。
@@ -9,11 +10,15 @@ abstract class ImageOpsNative {
 }
 
 class NativeBindings {
+  static ffi.DynamicLibrary? _cachedLib;
+  static ffi.DynamicLibrary _openLib() {
+    return _cachedLib ??= ffi.DynamicLibrary.open(_libraryName());
+  }
+
   static bool available() {
     try {
-      final libName = _libraryName();
       // Try opening; if it fails, an exception is thrown.
-      ffi.DynamicLibrary.open(libName);
+      _openLib();
       return true;
     } catch (_) {
       return false;
@@ -29,7 +34,52 @@ class NativeBindings {
     throw UnsupportedError('Unsupported platform');
   }
 
-  // 将来: ここに to_grayscale_u8 の呼び出し実装を追加予定。
+  // to_grayscale_u8(rgb, width, height, out) -> int (0:ok)
+  static int _toGray(
+    ffi.Pointer<ffi.Uint8> rgb,
+    int width,
+    int height,
+    ffi.Pointer<ffi.Uint8> out,
+  ) {
+    final lib = _openLib();
+    final fn = lib.lookupFunction<
+        ffi.Int32 Function(ffi.Pointer<ffi.Uint8>, ffi.Int32, ffi.Int32,
+            ffi.Pointer<ffi.Uint8>),
+        int Function(ffi.Pointer<ffi.Uint8>, int, int, ffi.Pointer<ffi.Uint8>)>(
+      'to_grayscale_u8',
+    );
+    return fn(rgb, width, height, out);
+  }
+
+  static List<int> callRgbToGrayscaleU8(List<int> rgb, int width, int height) {
+    final total = width * height;
+    if (width <= 0 || height <= 0) {
+      throw ArgumentError('width/height must be positive');
+    }
+    if (rgb.length != total * 3) {
+      throw ArgumentError('rgb length must be width*height*3');
+    }
+    final inPtr = pkg_ffi.malloc<ffi.Uint8>(rgb.length);
+    final outPtr = pkg_ffi.malloc<ffi.Uint8>(total);
+    try {
+      // copy input
+      for (var i = 0; i < rgb.length; i++) {
+        inPtr[i] = rgb[i];
+      }
+      final rc = _toGray(inPtr, width, height, outPtr);
+      if (rc != 0) {
+        throw StateError('native to_grayscale_u8 failed: rc=$rc');
+      }
+      final out = List<int>.filled(total, 0);
+      for (var i = 0; i < total; i++) {
+        out[i] = outPtr[i];
+      }
+      return out;
+    } finally {
+      pkg_ffi.malloc.free(inPtr);
+      pkg_ffi.malloc.free(outPtr);
+    }
+  }
 }
 
 /// 既定のダミー実装（ネイティブ未接続）。
@@ -63,9 +113,6 @@ class DefaultNativeOps implements ImageOpsNative {
     if (!_avail) {
       throw UnsupportedError('Native ImageOps is not available');
     }
-
-    // 将来的に FFI 実装（to_grayscale_u8）に接続する。
-    // 現段階ではダミー実装を避け、未実装として明示。
-    throw UnimplementedError('Native call wiring not yet connected');
+    return NativeBindings.callRgbToGrayscaleU8(rgb, width, height);
   }
 }
