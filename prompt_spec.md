@@ -173,6 +173,7 @@ UI/UXテスト
 	•	CI ワークフロー内の署名付きリリースジョブ存在確認（`test/ci_release_job_test.dart`）
 	•	CI ワークフロー内の解析/テスト/ビルドジョブ存在確認（`test/ci_analyze_build_jobs_test.dart`）
 	•	Android CMake に OpenCV 検出/リンクの雛形が含まれることを検証（`test/opencv_android_cmake_test.dart`）
+	•	Android の jniLibs に OpenCV のプリビルド .so を配置していることを検証（`test/opencv_android_jnilibs_test.dart`）
 
 ⸻
 
