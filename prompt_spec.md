@@ -35,6 +35,7 @@ SDK管理	fvm（Flutter 3.22.0 をプロジェクトで固定）
 	•	ギャラリー選択（jpg/png）
 	•	最大解像度：4000×3000px（内部で自動リサイズ）
 		- 対応拡張子: jpg/jpeg/png（大文字小文字不問）
+		- 補足: 入力ファイル名の前後空白は無視して拡張子判定（例: " photo.JPG " も許容）
 		- 超過時は縦横比を保持して 4000×3000 以内に縮小
 	•	権限: Androidは CAMERA / READ_MEDIA_IMAGES（9〜12は READ_EXTERNAL_STORAGE）、iOSはカメラ/フォトライブラリアクセス文言を設定
 	•	権限拒否時はSnackBarで「設定をひらく」導線を表示
@@ -167,6 +168,7 @@ UI/UXテスト
 	•	pubspec の SDK 制約抽出は二重引用・単一引用・無引用に対応（`test/sdk_compat_extract_test.dart`）
 	•	ホーム→左右選択→比較画面までの一連のフロー（ウィジェットテスト）
 	•	画像入力（拡張子判定・最大解像度クランプ）の単体テスト
+	•	拡張子判定でファイル名の前後空白を許容するテスト（`test/input_format_whitespace_test.dart`）
 	•	範囲指定（左）→保存→比較画面に選択が反映されるフロー（`test/rect_select_apply_flow_test.dart`）
 	•	CI ワークフロー内の署名付きリリースジョブ存在確認（`test/ci_release_job_test.dart`）
 	•	CI ワークフロー内の解析/テスト/ビルドジョブ存在確認（`test/ci_analyze_build_jobs_test.dart`）
