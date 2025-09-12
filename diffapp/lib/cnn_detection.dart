@@ -28,6 +28,22 @@ abstract class CnnDetector {
   });
 }
 
+/// ネイティブ実装インタフェース（将来的にTFLiteへ接続）。
+/// FfiCnnDetector へ注入可能で、利用可能な場合は優先的に使用される。
+abstract class CnnNative {
+  bool get isAvailable;
+  bool get isLoaded;
+  Future<void> load(Uint8List modelData);
+  List<Detection> detectFromDiffMap(
+    List<double> diffMap,
+    int width,
+    int height, {
+    required Settings settings,
+    int maxOutputs = 20,
+    double iouThreshold = 0.5,
+  });
+}
+
 class MockCnnDetector implements CnnDetector {
   bool _loaded = false;
   @override
@@ -126,20 +142,50 @@ class MockCnnDetector implements CnnDetector {
 /// FFI Detector 土台。現状は Mock にフォールバック。
 class FfiCnnDetector implements CnnDetector {
   final MockCnnDetector _fallback = MockCnnDetector();
+  final CnnNative? _native;
+
+  FfiCnnDetector({CnnNative? native}) : _native = native;
 
   @override
-  bool get isLoaded => _fallback.isLoaded;
+  bool get isLoaded {
+    final n = _native;
+    if (n != null && n.isAvailable) return n.isLoaded;
+    return _fallback.isLoaded;
+  }
 
   @override
-  Future<void> load(Uint8List modelData) => _fallback.load(modelData);
+  Future<void> load(Uint8List modelData) async {
+    final n = _native;
+    if (n != null && n.isAvailable) {
+      await n.load(modelData);
+      return;
+    }
+    await _fallback.load(modelData);
+  }
 
   @override
   List<Detection> detectFromDiffMap(List<double> diffMap, int width, int height,
-          {required Settings settings,
-          int maxOutputs = 20,
-          double iouThreshold = 0.5}) =>
-      _fallback.detectFromDiffMap(diffMap, width, height,
-          settings: settings,
-          maxOutputs: maxOutputs,
-          iouThreshold: iouThreshold);
+      {required Settings settings,
+      int maxOutputs = 20,
+      double iouThreshold = 0.5}) {
+    final n = _native;
+    if (n != null && n.isAvailable) {
+      return n.detectFromDiffMap(
+        diffMap,
+        width,
+        height,
+        settings: settings,
+        maxOutputs: maxOutputs,
+        iouThreshold: iouThreshold,
+      );
+    }
+    return _fallback.detectFromDiffMap(
+      diffMap,
+      width,
+      height,
+      settings: settings,
+      maxOutputs: maxOutputs,
+      iouThreshold: iouThreshold,
+    );
+  }
 }

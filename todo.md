@@ -54,6 +54,7 @@
   - [x] `FfiImageOps` がネイティブ実装を優先使用できる注入機構を追加（単体テストを実装）
   - [x] 既定ネイティブ実装スタブ `DefaultNativeOps` を追加（未接続環境では Dart 実装にフォールバックすることをテストで保証）
   - [x] OpenCV サンプル関数（代替の C++ グレースケール関数）を Dart から呼び出す（Android FFI 配線）
+  - [x] CNN 検出の FFI スタブ注入（`FfiCnnDetector` に `CnnNative` を注入可能にし、未接続時は Mock にフォールバック）
   - [ ] TFLite 推論を Dart から呼び出す
 
 ---
