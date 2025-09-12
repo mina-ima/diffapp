@@ -196,4 +196,4 @@ UI/UXテスト
 	•	傾き補正の相似変換/RANSAC とホモグラフィRANSAC（Dart雛形）は実装・テスト済み
 	•	ネイティブ導入（OpenCV/TFLite の FFI 配線）は未着手のため、現状は Dart 実装へ自動フォールバック
 	•	TFLite モデルアセットの配置準備（assets/models/）を追加し、存在検証の自動テストを作成（`test/model_asset_presence_test.dart`）
-	•	スプラッシュ画面（Android）の設定を追加：`launch_background.xml` でアプリアイコンを中央に表示（`test/android_splash_config_test.dart` で検証）
+	•	スプラッシュ画面（Android/iOS）設定を整備：Androidは `launch_background.xml` でアイコンを中央表示（`test/android_splash_config_test.dart`）、iOSは LaunchScreen.storyboard で `LaunchImage` を中央表示（`test/ios_splash_config_test.dart`）
