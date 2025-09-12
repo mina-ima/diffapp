@@ -195,3 +195,5 @@ UI/UXテスト
 	•	画像処理パイプラインの Dart 実装（1280幅正規化、矩形スケーリング、SSIM、二値化、連結成分、NMS、上位20件、設定反映、モックCNN）は実装・テスト済み
 	•	傾き補正の相似変換/RANSAC とホモグラフィRANSAC（Dart雛形）は実装・テスト済み
 	•	ネイティブ導入（OpenCV/TFLite の FFI 配線）は未着手のため、現状は Dart 実装へ自動フォールバック
+	•	TFLite モデルアセットの配置準備（assets/models/）を追加し、存在検証の自動テストを作成（`test/model_asset_presence_test.dart`）
+	•	スプラッシュ画面（Android）の設定を追加：`launch_background.xml` でアプリアイコンを中央に表示（`test/android_splash_config_test.dart` で検証）

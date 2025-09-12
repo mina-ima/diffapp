@@ -47,7 +47,7 @@
 - [ ] TFLite ランタイム導入
   - [ ] iOS Podfile に追加
   - [ ] Android Gradle に追加
-  - [ ] モデルを assets/models に配置
+  - [x] モデルを assets/models に配置
 - [ ] Dart ↔ C++ FFI 実装
   - [x] Dart 側のFFI土台（フォールバック実装）
   - [x] グレースケール変換のC++サンプル関数とAndroid NDK/CMake設定（Dartからはフォールバックで動作確認）
@@ -170,6 +170,8 @@
 
 - [ ] アイコン作成
 - [ ] スプラッシュ画面設定
+  - [x] Android でロゴを中央表示（`launch_background.xml` に bitmap を追加）
+  - [ ] iOS でロゴを中央表示
 - [x] プライバシーポリシー整備
 - [ ] スクリーンショット準備
 - [ ] OSS ライセンス一覧画面作成
