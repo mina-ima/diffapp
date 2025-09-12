@@ -73,11 +73,27 @@ bool satisfiesConstraint(String versionStr, String constraintStr) {
 }
 
 String? _extractSdkConstraintFromPubspec(String yaml) {
-  // naive: find a line like: sdk: ">=3.4.0 <4.0.0"
-  final match =
-      RegExp(r'^\s*sdk:\s*"([^"]+)"', multiLine: true).firstMatch(yaml);
-  return match?.group(1);
+  // よりロバストに sdk: 行から値を抽出（単/二重引用・無引用・行末コメント対応）
+  final m = RegExp(r'^\s*sdk\s*:\s*(.+)$', multiLine: true).firstMatch(yaml);
+  if (m == null) return null;
+  var val = m.group(1)!.trim();
+  // 行末コメントを除去
+  final hash = val.indexOf('#');
+  if (hash >= 0) {
+    val = val.substring(0, hash).trim();
+  }
+  if (val.isEmpty) return null;
+  // 引用除去（対応する始終の ' または " のみ）
+  if ((val.startsWith('"') && val.endsWith('"')) ||
+      (val.startsWith("'") && val.endsWith("'"))) {
+    val = val.substring(1, val.length - 1);
+  }
+  return val.trim();
 }
+
+// テスト用のパブリックAPI（内部実装をそのまま公開）
+String? extractSdkConstraintFromPubspec(String yaml) =>
+    _extractSdkConstraintFromPubspec(yaml);
 
 String? _dartVersionForFlutter(String flutterVersion) {
   // Minimal mapping for our pinned version. Extend if bumping Flutter.
