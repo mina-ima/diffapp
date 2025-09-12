@@ -18,15 +18,15 @@ class DiffApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
-        elevatedButtonTheme: ElevatedButtonThemeData(
+        elevatedButtonTheme: const ElevatedButtonThemeData(
           style: ButtonStyle(
-            minimumSize: MaterialStateProperty.all(const Size(48.0, 48.0)),
+            minimumSize: WidgetStatePropertyAll(Size(48.0, 48.0)),
             tapTargetSize: MaterialTapTargetSize.padded,
           ),
         ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
+        outlinedButtonTheme: const OutlinedButtonThemeData(
           style: ButtonStyle(
-            minimumSize: MaterialStateProperty.all(const Size(48.0, 48.0)),
+            minimumSize: WidgetStatePropertyAll(Size(48.0, 48.0)),
             tapTargetSize: MaterialTapTargetSize.padded,
           ),
         ),
