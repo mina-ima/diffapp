@@ -21,4 +21,3 @@ void main() {
     expect(find.textContaining('本アプリは完全オフラインで動作'), findsOneWidget);
   });
 }
-

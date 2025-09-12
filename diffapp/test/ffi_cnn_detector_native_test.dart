@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:diffapp/cnn_detection.dart';
+import 'package:diffapp/image_pipeline.dart';
 import 'package:diffapp/settings.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -109,4 +110,3 @@ void main() {
     expect(fake.detectCalls, 0, reason: '未利用ならネイティブ経路は呼ばれない');
   });
 }
-

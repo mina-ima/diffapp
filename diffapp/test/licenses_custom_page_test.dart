@@ -20,4 +20,3 @@ void main() {
     expect(find.byType(OssLicensesPage), findsOneWidget);
   });
 }
-

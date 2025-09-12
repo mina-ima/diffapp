@@ -16,9 +16,7 @@ void main() {
           xml.contains('firstAttribute="centerX"') &&
           xml.contains('firstAttribute="centerY"'),
       isTrue,
-      reason:
-          'LaunchScreen.storyboard に中央寄せの LaunchImage を表示する設定を追加してください',
+      reason: 'LaunchScreen.storyboard に中央寄せの LaunchImage を表示する設定を追加してください',
     );
   });
 }
-

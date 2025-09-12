@@ -9,9 +9,14 @@ void main() {
       expect(pubspec.existsSync(), isTrue, reason: 'pubspec.yaml が存在すること');
       final content = await pubspec.readAsString();
       // 最低限、assets セクションに assets/models/ が含まれていることを確認
+      final hasAssetsBlock = content.contains(
+        RegExp(r'^\s*assets:\n\s*-\s*assets/models/?\s*$', multiLine: true),
+      );
+      final hasModelsLine = content.contains(
+        RegExp(r'^\s*-\s*assets/models/?\s*$', multiLine: true),
+      );
       expect(
-        content.contains(RegExp(r'(?m)^\s*assets:\n\s*-\s*assets\/models\/?\s*$')) ||
-            content.contains(RegExp(r'(?m)^\s*-\s*assets\/models\/?\s*$')),
+        hasAssetsBlock || hasModelsLine,
         isTrue,
         reason: 'pubspec.yaml の flutter:assets に assets/models/ を追加してください',
       );
@@ -29,4 +34,3 @@ void main() {
     });
   });
 }
-

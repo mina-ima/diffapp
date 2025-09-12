@@ -51,4 +51,3 @@ void main() {
     expect(sw.elapsed, lessThan(const Duration(seconds: 5)));
   });
 }
-

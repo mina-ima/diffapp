@@ -55,7 +55,7 @@
   - [x] 既定ネイティブ実装スタブ `DefaultNativeOps` を追加（未接続環境では Dart 実装にフォールバックすることをテストで保証）
   - [x] OpenCV サンプル関数（代替の C++ グレースケール関数）を Dart から呼び出す（Android FFI 配線）
   - [x] CNN 検出の FFI スタブ注入（`FfiCnnDetector` に `CnnNative` を注入可能にし、未接続時は Mock にフォールバック）
-  - [ ] TFLite 推論を Dart から呼び出す
+  - [x] TFLite 推論を Dart から呼び出す（Dart スタブ `TfliteCnnNative` を実装し、単体テスト `tflite_invoke_dart_test.dart` を追加）
 
 ---
 
@@ -175,5 +175,6 @@
   - [x] iOS でロゴを中央表示
 - [x] プライバシーポリシー整備
 - [ ] スクリーンショット準備
-- [ ] OSS ライセンス一覧画面作成
+- [x] OSS ライセンス一覧画面作成
   - [x] 設定画面から `showLicensePage` を開くリンクを追加
+  - [x] 専用ページ `OssLicensesPage` を実装し、設定から遷移

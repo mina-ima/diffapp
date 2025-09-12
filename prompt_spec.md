@@ -198,4 +198,6 @@ UI/UXテスト
 	•	TFLite モデルアセットの配置準備（assets/models/）を追加し、存在検証の自動テストを作成（`test/model_asset_presence_test.dart`）
 	•	スプラッシュ画面（Android/iOS）設定を整備：Androidは `launch_background.xml` でアイコンを中央表示（`test/android_splash_config_test.dart`）、iOSは LaunchScreen.storyboard で `LaunchImage` を中央表示（`test/ios_splash_config_test.dart`）
 	•	TFLite ランタイム導入の下準備を追加：Android Gradle へ `org.tensorflow:tensorflow-lite` を追加（`test/tflite_runtime_android_gradle_test.dart`）、iOS Podfile に `pod 'TensorFlowLiteSwift'` を追加（`test/tflite_runtime_ios_podfile_test.dart`）
+	•	Dart からの TFLite 呼び出しスタブ `TfliteCnnNative` を追加し、`FfiCnnDetector` に注入してユニットテストを作成（`test/tflite_invoke_dart_test.dart`）
 	•	CNN 検出の FFI スタブ注入構造を追加：`FfiCnnDetector` に `CnnNative` を注入可能にし、未接続時は `MockCnnDetector` にフォールバック（`test/ffi_cnn_detector_native_test.dart`）
+	•	OSS ライセンス専用ページ `OssLicensesPage` を追加し、設定から遷移（`test/licenses_custom_page_test.dart`）

@@ -12,4 +12,3 @@ class OssLicensesPage extends StatelessWidget {
     );
   }
 }
-
