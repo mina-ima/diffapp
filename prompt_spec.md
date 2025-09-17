@@ -202,3 +202,4 @@ UI/UXテスト
 • OSS ライセンス専用ページ `OssLicensesPage` を追加し、設定から遷移（`test/licenses_custom_page_test.dart`）
 • Android NDK の CMake に OpenCV 連携（find_package/include/link）の雛形を追加し、Web 側でも存在検証（`src/opencv_ndk_config.test.ts`）
 • iOS 向けの OpenCV CMake 雛形/README/ビルドスクリプトを追加し、Web 側でも存在検証（`src/opencv_ios_build_config.test.ts`）
+• iOS 側 CMake に OpenCV の find_package/include/link を具体化し、Web 側でも内容検証（`src/opencv_ios_cmake_link_config.test.ts`）

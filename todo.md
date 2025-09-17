@@ -42,6 +42,7 @@
 
 - [ ] OpenCV ビルド
   - [x] iOS 用 OpenCV CMake 雛形/README/ビルドスクリプトを追加（将来の .framework / .a 生成用）
+  - [x] iOS 側 CMake に OpenCV の find_package/include/link を具体化
   - [x] Android 用に CMake ビルド → .so 生成（arm64-v8a / armeabi-v7a）
   - [x] Xcode プロジェクトに組込（pbxproj のブリッジングヘッダ/CLANG_CXX_LIBRARY 等の検証を追加）
   - [x] Android Studio jniLibs に配置
