@@ -10,7 +10,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["vitest", "@testing-library/jest-dom"]
+    "types": ["vitest", "@testing-library/jest-dom", "node"]
   },
   "include": ["src", "vitest.config.ts", "setupTests.ts"]
 }
