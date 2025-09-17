@@ -388,39 +388,70 @@ class _ComparePageState extends State<ComparePage>
     required Dimensions dims,
     required IntRect rect,
   }) {
-    final aspect = rect.width > 0 && rect.height > 0
-        ? rect.width / rect.height
-        : 1.0;
-    final imageWidget = bytes != null
-        ? Image.memory(bytes, width: dims.width.toDouble(), height: dims.height.toDouble(), fit: BoxFit.cover)
-        : (path != null
-            ? Image.file(File(path), width: dims.width.toDouble(), height: dims.height.toDouble(), fit: BoxFit.cover)
-            : const Icon(Icons.image, size: 64, color: Colors.grey));
-
+    // 画像が無い場合はそのままプレースホルダを返す
     if (bytes == null && path == null) {
-      return imageWidget;
+      return const Icon(Icons.image, size: 64, color: Colors.grey);
     }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: AspectRatio(
-        aspectRatio: aspect,
-        child: ClipRect(
-          child: OverflowBox(
-            alignment: Alignment.topLeft,
-            minWidth: dims.width.toDouble(),
-            minHeight: dims.height.toDouble(),
-            maxWidth: dims.width.toDouble(),
-            maxHeight: dims.height.toDouble(),
-            child: Transform.translate(
-              offset: Offset(-rect.left.toDouble(), -rect.top.toDouble()),
-              child: KeyedSubtree(
-                key: Key(isLeft ? 'cropped-left' : 'cropped-right'),
-                child: imageWidget,
+
+    // レイアウトに応じてスケールを決め、選択矩形の座標と一致するように
+    // ビューポートサイズとオフセットを計算する。
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const double preferredViewportHeight = 160.0;
+        // まず高さ基準のスケールを試算（矩形の高さがちょうど 160 になるスケール）
+        double s = preferredViewportHeight / rect.height;
+        double viewportW = rect.width * s;
+        double viewportH = rect.height * s;
+        // 横幅がはみ出す場合は、横幅基準にスケールを調整
+        if (viewportW > constraints.maxWidth) {
+          s = constraints.maxWidth / rect.width;
+          viewportW = rect.width * s;
+          viewportH = rect.height * s;
+        }
+
+        final renderImageW = dims.width * s;
+        final renderImageH = dims.height * s;
+        final dx = -rect.left * s;
+        final dy = -rect.top * s;
+
+        final Widget imageWidget = bytes != null
+            ? Image.memory(
+                bytes,
+                width: renderImageW,
+                height: renderImageH,
+                fit: BoxFit.cover,
+              )
+            : Image.file(
+                File(path!),
+                width: renderImageW,
+                height: renderImageH,
+                fit: BoxFit.cover,
+              );
+
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            key: Key(isLeft
+                ? 'cropped-left-viewport'
+                : 'cropped-right-viewport'),
+            width: viewportW,
+            height: viewportH,
+            child: ClipRect(
+              child: Stack(
+                children: [
+                  Transform.translate(
+                    offset: Offset(dx.toDouble(), dy.toDouble()),
+                    child: KeyedSubtree(
+                      key: Key(isLeft ? 'cropped-left' : 'cropped-right'),
+                      child: imageWidget,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
