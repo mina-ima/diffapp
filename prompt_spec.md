@@ -198,6 +198,7 @@ UI/UXテスト
 • 傾き補正の相似変換/RANSAC とホモグラフィRANSAC（Dart雛形）は実装・テスト済み
 • ネイティブ導入（OpenCV/TFLite の FFI 配線）は未着手のため、現状は Dart 実装へ自動フォールバック
 • TFLite モデルアセットの配置準備（assets/models/）を追加し、存在検証の自動テストを作成（`test/model_asset_presence_test.dart`）
+• スプラッシュ画面設定（Android/iOS）を整備し、Web/Dart テストで検証済み
 • スプラッシュ画面（Android/iOS）設定を整備：Androidは `launch_background.xml` でアイコンを中央表示（`test/android_splash_config_test.dart`）、iOSは LaunchScreen.storyboard で `LaunchImage` を中央表示（`test/ios_splash_config_test.dart`）
 • TFLite ランタイム導入の下準備を追加：Android Gradle へ `org.tensorflow:tensorflow-lite` を追加（`test/tflite_runtime_android_gradle_test.dart`）、iOS Podfile に `pod 'TensorFlowLiteSwift'` を追加（`test/tflite_runtime_ios_podfile_test.dart`）
 • Dart からの TFLite 呼び出しスタブ `TfliteCnnNative` を追加し、`FfiCnnDetector` に注入してユニットテストを作成（`test/tflite_invoke_dart_test.dart`）
