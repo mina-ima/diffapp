@@ -6,6 +6,11 @@ add_library(native-lib SHARED native-lib.cpp)
 find_library(log-lib log)
 target_link_libraries(native-lib ${log-lib})
 
+# OpenCV (Android NDK) linkage
+find_package(OpenCV REQUIRED core imgproc features2d)
+include_directories(${OpenCV_INCLUDE_DIRS})
+target_link_libraries(native-lib ${OpenCV_LIBS})
+
 # --- Native test executables (not wired to CI yet) ---
 # These targets allow local NDK builds for algorithm tests. Linking to external
 # libs (e.g., OpenCV) is omitted for now.
@@ -21,14 +26,14 @@ FetchContent_MakeAvailable(googletest)
 add_executable(orb_sift_matching_test
   tests/orb_sift_matching_test.cpp
 )
-target_link_libraries(orb_sift_matching_test gtest_main)
+target_link_libraries(orb_sift_matching_test gtest_main ${OpenCV_LIBS})
 
 add_executable(ssim_numeric_test
   tests/ssim_numeric_test.cpp
 )
-target_link_libraries(ssim_numeric_test gtest_main)
+target_link_libraries(ssim_numeric_test gtest_main ${OpenCV_LIBS})
 
 add_executable(nms_dedup_test
   tests/nms_dedup_test.cpp
 )
-target_link_libraries(nms_dedup_test gtest_main)
+target_link_libraries(nms_dedup_test gtest_main ${OpenCV_LIBS})
