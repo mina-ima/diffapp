@@ -155,6 +155,7 @@
   - [x] SSIM 数値検証（アルゴリズム骨子）
   - [x] NMS 重複除去テスト（アルゴリズム骨子）
   - [x] NDK CMake にテストターゲット（add_executable）を追加
+  - [x] gtest 導入（CMake FetchContent・gtest_mainリンク・gtest用CPP雛形）
 - [x] 結合テスト
   - [x] 入力〜表示まで一連のフロー確認
   - [x] 設定が処理に反映されるか確認（効果音OFFで再生されない）
