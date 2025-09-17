@@ -10,3 +10,7 @@ add_library(opencv_ios STATIC
 
 target_include_directories(opencv_ios PUBLIC include)
 
+# OpenCV linkage (iOS)
+find_package(OpenCV REQUIRED core imgproc features2d)
+include_directories(${OpenCV_INCLUDE_DIRS})
+target_link_libraries(opencv_ios ${OpenCV_LIBS})
