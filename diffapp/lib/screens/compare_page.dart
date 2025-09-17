@@ -47,6 +47,7 @@ class _ComparePageState extends State<ComparePage>
   late final Dimensions _rightNorm;
   late final AnimationController _pulse;
   late final Animation<double> _scale;
+  bool _showCroppedPreviews = false;
 
   void _startDetection(BuildContext context) {
     // 効果音
@@ -136,12 +137,18 @@ class _ComparePageState extends State<ComparePage>
     );
     if (result == null) return;
     if (result is IntRect) {
-      setState(() => _leftRect = result);
+      setState(() {
+        _leftRect = result;
+        _showCroppedPreviews = false; // まだ右へ適用していない段階
+      });
     } else if (result is (IntRect, bool)) {
       final (rect, applyRight) = result;
       setState(() => _leftRect = rect);
       if (applyRight == true) {
         _applySameRectToRight();
+        setState(() {
+          _showCroppedPreviews = true; // 左も右もプレビューを切り出し表示
+        });
       }
     }
   }
@@ -298,26 +305,36 @@ class _ComparePageState extends State<ComparePage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (bytes != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 160,
-                      child: Image.memory(bytes, fit: BoxFit.cover),
-                    ),
+                if (_showCroppedPreviews && rect != null)
+                  _buildCroppedPreview(
+                    isLeft: isLeft,
+                    bytes: bytes,
+                    path: path,
+                    dims: dims,
+                    rect: rect,
                   )
-                else if (path != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 160,
-                      child: Image.file(File(path), fit: BoxFit.cover),
-                    ),
-                  )
-                else
-                  const Icon(Icons.image, size: 64, color: Colors.grey),
+                else ...[
+                  if (bytes != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 160,
+                        child: Image.memory(bytes, fit: BoxFit.cover),
+                      ),
+                    )
+                  else if (path != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 160,
+                        child: Image.file(File(path), fit: BoxFit.cover),
+                      ),
+                    )
+                  else
+                    const Icon(Icons.image, size: 64, color: Colors.grey),
+                ],
                 const SizedBox(height: 8),
                 Text('$label  (${dims.width}x${dims.height})'),
                 if (rect != null) ...[
@@ -331,34 +348,78 @@ class _ComparePageState extends State<ComparePage>
             ),
           ),
           // 赤枠ハイライト（ポヨンアニメ）
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Center(
-                child: AnimatedBuilder(
-                  animation: _scale,
-                  builder: (context, child) => Transform.scale(
-                    scale: _scale.value,
-                    child: child,
-                  ),
-                  child: Semantics(
-                    label: '検出ハイライト',
-                    container: true,
-                    child: Container(
-                      key: Key(isLeft ? 'highlight-left' : 'highlight-right'),
-                      width: 82,
-                      height: 82,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.redAccent, width: 3),
-                        color: Colors.redAccent.withOpacity(0.06),
-                        borderRadius: BorderRadius.circular(8),
+          if (!_showCroppedPreviews)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Center(
+                  child: AnimatedBuilder(
+                    animation: _scale,
+                    builder: (context, child) => Transform.scale(
+                      scale: _scale.value,
+                      child: child,
+                    ),
+                    child: Semantics(
+                      label: '検出ハイライト',
+                      container: true,
+                      child: Container(
+                        key: Key(isLeft ? 'highlight-left' : 'highlight-right'),
+                        width: 82,
+                        height: 82,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.redAccent, width: 3),
+                          color: Colors.redAccent.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCroppedPreview({
+    required bool isLeft,
+    Uint8List? bytes,
+    String? path,
+    required Dimensions dims,
+    required IntRect rect,
+  }) {
+    final aspect = rect.width > 0 && rect.height > 0
+        ? rect.width / rect.height
+        : 1.0;
+    final imageWidget = bytes != null
+        ? Image.memory(bytes, width: dims.width.toDouble(), height: dims.height.toDouble(), fit: BoxFit.cover)
+        : (path != null
+            ? Image.file(File(path), width: dims.width.toDouble(), height: dims.height.toDouble(), fit: BoxFit.cover)
+            : const Icon(Icons.image, size: 64, color: Colors.grey));
+
+    if (bytes == null && path == null) {
+      return imageWidget;
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: AspectRatio(
+        aspectRatio: aspect,
+        child: ClipRect(
+          child: OverflowBox(
+            alignment: Alignment.topLeft,
+            minWidth: dims.width.toDouble(),
+            minHeight: dims.height.toDouble(),
+            maxWidth: dims.width.toDouble(),
+            maxHeight: dims.height.toDouble(),
+            child: Transform.translate(
+              offset: Offset(-rect.left.toDouble(), -rect.top.toDouble()),
+              child: KeyedSubtree(
+                key: Key(isLeft ? 'cropped-left' : 'cropped-right'),
+                child: imageWidget,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
