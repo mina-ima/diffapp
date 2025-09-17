@@ -2,6 +2,8 @@
 #include <gtest/gtest.h>
 #include <vector>
 #include <cstdint>
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
 
 // ssimGrayU8 の簡易版（テスト内に同等ロジックを持たせる）
 static double ssimGrayU8(const std::vector<uint8_t>& a,
@@ -30,4 +32,14 @@ TEST(SsimNumeric, IdenticalIsOne) {
   std::vector<uint8_t> b = a;
   const double s = ssimGrayU8(a, b);
   EXPECT_NEAR(s, 1.0, 1e-9);
+}
+
+TEST(SsimNumeric, AssetsSsimAboveThreshold) {
+  cv::Mat a = cv::imread("assets/left.pgm", cv::IMREAD_GRAYSCALE);
+  cv::Mat b = cv::imread("assets/right.pgm", cv::IMREAD_GRAYSCALE);
+  if (a.empty() || b.empty()) GTEST_SKIP() << "asset not found in runtime";
+  std::vector<uint8_t> va(a.begin<uint8_t>(), a.end<uint8_t>());
+  std::vector<uint8_t> vb(b.begin<uint8_t>(), b.end<uint8_t>());
+  const double s = ssimGrayU8(va, vb);
+  EXPECT_GT(s, 0.3); // 簡易しきい値
 }

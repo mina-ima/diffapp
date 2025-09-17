@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
 #include <vector>
 
 // matchFeaturesORB の簡易プロトタイプ（本体は別cppにある想定）
@@ -17,4 +18,12 @@ TEST(OrbSiftMatching, FindsCorrespondences) {
   auto matches = matchFeaturesORB(a, b, 300);
   // 少なくともいくつかの対応点が見つかる想定
   EXPECT_GE(static_cast<int>(matches.size()), 5);
+}
+
+TEST(OrbSiftMatching, AssetsFindsCorrespondences) {
+  cv::Mat a = cv::imread("assets/left.pgm", cv::IMREAD_GRAYSCALE);
+  cv::Mat b = cv::imread("assets/right.pgm", cv::IMREAD_GRAYSCALE);
+  if (a.empty() || b.empty()) GTEST_SKIP() << "asset not found in runtime";
+  auto matches = matchFeaturesORB(a, b, 300);
+  EXPECT_GE(static_cast<int>(matches.size()), 3);
 }
