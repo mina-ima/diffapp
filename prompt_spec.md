@@ -166,6 +166,7 @@ UI/UXテスト
 • Android NDK 用 CMake にテストターゲット（add_executable）を定義し、Web テストで存在検証（`src/native_gtest_build_config.test.ts`）
 • gtest 導入（CMake FetchContent・gtest_mainリンク・gtest用CPP雛形）をWeb テストで検証（`src/native_gtest_presence.test.ts`）
 • gtest 数値検証（合成データ）を C++ に記述し、Web 側では内容検証（`src/native_gtest_numeric_content.test.ts`）
+• OpenCV 実データ（PGM）資産を追加し、gtest 内で `cv::imread` を用いた検証を記述（Web 側では資産と記述の存在検証: `src/native_gtest_opencv_assets_content.test.ts`）
 
 ⸻
 
