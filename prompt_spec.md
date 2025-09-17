@@ -165,6 +165,7 @@ UI/UXテスト
 • C++ アルゴリズム骨子（ORB/SSIM/NMS）をファイル内容で検証（`src/native_algorithms_content.test.ts`）
 • Android NDK 用 CMake にテストターゲット（add_executable）を定義し、Web テストで存在検証（`src/native_gtest_build_config.test.ts`）
 • gtest 導入（CMake FetchContent・gtest_mainリンク・gtest用CPP雛形）をWeb テストで検証（`src/native_gtest_presence.test.ts`）
+• gtest 数値検証（合成データ）を C++ に記述し、Web 側では内容検証（`src/native_gtest_numeric_content.test.ts`）
 
 ⸻
 
