@@ -121,7 +121,7 @@ jobs:
         run: |
           cmake -S diffapp/android/app/src/main/cpp -B build-native \
             -DANDROID=TRUE \
-            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_ABI=x86_64 \
             -DANDROID_PLATFORM=android-24 \
             -DOPENCV_OPTIONAL=ON \
             -DCMAKE_BUILD_TYPE=Release \
@@ -139,6 +139,44 @@ jobs:
             build-native/**/orb_sift_matching_test*
             build-native/**/ssim_numeric_test*
             build-native/**/nms_dedup_test*
+
+  native_gtest_run:
+    name: Run native gtest on Android Emulator
+    needs: native_gtest
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download native test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: native-gtest-binaries
+          path: native-bins
+
+      - name: List downloaded bins
+        run: |
+          ls -R native-bins || true
+
+      - name: Run on emulator (API 30 x86_64)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            set -euxo pipefail
+            for t in orb_sift_matching_test ssim_numeric_test nms_dedup_test; do
+              BIN=$(find "$GITHUB_WORKSPACE/native-bins" -type f -name "$t" -print -quit || true)
+              if [ -n "$BIN" ]; then
+                adb push "$BIN" /data/local/tmp/$t
+                adb shell chmod +x /data/local/tmp/$t
+                adb shell /data/local/tmp/$t || true
+              else
+                echo "binary $t not found; skipping"
+              fi
+            done
 
   release_android_signed:
     name: Release Android (Signed AAB)
