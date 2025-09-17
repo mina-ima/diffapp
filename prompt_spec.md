@@ -159,6 +159,7 @@ UI/UXテスト
 • Android CMake に OpenCV 検出/リンクの雛形が含まれることを検証（`test/opencv_android_cmake_test.dart`）
 • Android の jniLibs に OpenCV のプリビルド .so を配置していることを検証（`test/opencv_android_jnilibs_test.dart`）
 • iOS の Xcode プロジェクト（pbxproj）にネイティブ連携の下地（ブリッジングヘッダ、libc++、Frameworks フェーズ、iOS 13+）が整っていることを検証（`test/opencv_ios_pbxproj_test.dart`）
+• Web プロトタイプ（React）でトップ画面の文言/ボタン存在テスト（Vitest + RTL, `src/TopScreen.test.tsx`）
 
 ⸻
 
