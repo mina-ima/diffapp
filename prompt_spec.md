@@ -76,6 +76,7 @@ AIモデル TensorFlow Lite（CNN） 形・文字認識補強
    • ストレージ：一時ファイルはセッション終了時に削除
    • セキュリティ：画像は外部送信禁止
    • 拡張性：Flutterで共通UIロジック、AI処理はプラットフォームごとに最適化可
+   • 低メモリ端末での安定性：計画（`diffapp/docs/perf_low_memory_plan.md`）に基づき確認（ulimit/adb/Xcodeのメモリ警告を活用）。
 
 ⸻
 
