@@ -40,7 +40,7 @@
 
 ## 2. ネイティブライブラリ導入
 
-- [ ] OpenCV ビルド
+- [x] OpenCV ビルド
   - [x] iOS 用 OpenCV CMake 雛形/README/ビルドスクリプトを追加（将来の .framework / .a 生成用）
   - [x] iOS 側 CMake に OpenCV の find_package/include/link を具体化
   - [x] Android 用に CMake ビルド → .so 生成（arm64-v8a / armeabi-v7a）
@@ -51,7 +51,7 @@
   - [x] iOS Podfile に追加
   - [x] Android Gradle に追加
   - [x] モデルを assets/models に配置
-- [ ] Dart ↔ C++ FFI 実装
+- [x] Dart ↔ C++ FFI 実装
   - [x] Dart 側のFFI土台（フォールバック実装）
   - [x] グレースケール変換のC++サンプル関数とAndroid NDK/CMake設定（Dartからはフォールバックで動作確認）
   - [x] `FfiImageOps` がネイティブ実装を優先使用できる注入機構を追加（単体テストを実装）
