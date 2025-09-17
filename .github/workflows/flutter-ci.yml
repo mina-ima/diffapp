@@ -104,6 +104,42 @@ jobs:
           name: ios-simulator-app
           path: diffapp/build/ios/iphonesimulator/Runner.app
 
+  native_gtest:
+    name: Build native gtest (Android NDK)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup NDK r26d
+        id: setup-ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26d
+
+      - name: Configure CMake (Android toolchain)
+        run: |
+          cmake -S diffapp/android/app/src/main/cpp -B build-native \
+            -DANDROID=TRUE \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-24 \
+            -DOPENCV_OPTIONAL=ON \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake
+
+      - name: Build native tests
+        run: cmake --build build-native --config Release --parallel
+
+      - name: Upload native test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-gtest-binaries
+          path: |
+            build-native/**/*.so
+            build-native/**/orb_sift_matching_test*
+            build-native/**/ssim_numeric_test*
+            build-native/**/nms_dedup_test*
+
   release_android_signed:
     name: Release Android (Signed AAB)
     runs-on: ubuntu-latest
