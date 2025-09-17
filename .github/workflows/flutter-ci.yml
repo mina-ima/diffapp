@@ -117,13 +117,30 @@ jobs:
         with:
           ndk-version: r26d
 
+      - name: Restore OpenCV Android SDK cache
+        id: cache-opencv
+        uses: actions/cache@v4
+        with:
+          path: opencv-android-sdk
+          key: opencv-android-4.8.0
+
+      - name: Download OpenCV Android SDK (if cache miss)
+        if: steps.cache-opencv.outputs.cache-hit != 'true'
+        run: |
+          set -euxo pipefail
+          curl -L -o opencv-android-sdk.zip https://github.com/opencv/opencv/releases/download/4.8.0/opencv-4.8.0-android-sdk.zip
+          unzip -q opencv-android-sdk.zip
+          mv OpenCV-android-sdk opencv-android-sdk
+          rm -f opencv-android-sdk.zip
+
       - name: Configure CMake (Android toolchain)
         run: |
           cmake -S diffapp/android/app/src/main/cpp -B build-native \
             -DANDROID=TRUE \
             -DANDROID_ABI=x86_64 \
             -DANDROID_PLATFORM=android-24 \
-            -DOPENCV_OPTIONAL=ON \
+            -DOpenCV_DIR=${{ github.workspace }}/opencv-android-sdk/sdk/native/jni \
+            -DOPENCV_OPTIONAL=OFF \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake
 
