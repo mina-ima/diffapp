@@ -124,5 +124,17 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('keeps at least 1px when downscaling tiny rects', () {
+      // from 1280x960 -> 640x480 (scale 0.5). A 1px-wide rect should remain visible.
+      const tinyWide = IntRect(left: 10, top: 20, width: 1, height: 50);
+      final scaledWide = scaleRectBetweenSpaces(tinyWide, 1280, 960, 640, 480);
+      expect(scaledWide.width, greaterThanOrEqualTo(1));
+
+      // Similarly for height when scaling down.
+      const tinyTall = IntRect(left: 20, top: 10, width: 50, height: 1);
+      final scaledTall = scaleRectBetweenSpaces(tinyTall, 1280, 960, 640, 480);
+      expect(scaledTall.height, greaterThanOrEqualTo(1));
+    });
   });
 }

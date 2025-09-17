@@ -41,7 +41,8 @@ SDK管理 fvm（Flutter 3.22.0 をプロジェクトで固定）
 • 指ドラッグで矩形選択（リサイズ可）
 • 選択範囲は右画像にも同座標で適用
 • 画面下部の3ボタンは OutlinedButton で統一（範囲指定/検査精度設定/検査をはじめる）
- • プレビュー表示は選択矩形のスケールに厳密に一致（矩形サイズをビューポート化し、オフセットは表示スケールに追従）— ウィジェットテストで担保（`test/crop_preview_translation_scaled_test.dart`）
+• プレビュー表示は選択矩形のスケールに厳密に一致（矩形サイズをビューポート化し、オフセットは表示スケールに追従）— ウィジェットテストで担保（`test/crop_preview_translation_scaled_test.dart`）
+• 退行防止: 極端に縦長/横長の矩形でもプレビューが消えないよう、座標変換の丸めで最小1pxを保証（`scaleRectBetweenSpaces` 改修）。ウィジェット/ユニットテストで担保（`test/crop_preview_extreme_aspect_test.dart`, `test/image_pipeline_test.dart`）
 
 2.4 画像前処理
 
@@ -214,3 +215,4 @@ UI/UXテスト
 • Android NDK の CMake に OpenCV 連携（find_package/include/link）の雛形を追加し、Web 側でも存在検証（`src/opencv_ndk_config.test.ts`）
 • iOS 向けの OpenCV CMake 雛形/README/ビルドスクリプトを追加し、Web 側でも存在検証（`src/opencv_ios_build_config.test.ts`）
 • iOS 側 CMake に OpenCV の find_package/include/link を具体化し、Web 側でも内容検証（`src/opencv_ios_cmake_link_config.test.ts`）
+• バグ修正: 同座標適用後に範囲指定プレビューがずれる/消えることがある問題を修正（座標丸めと境界クランプの見直し）。回帰テストを追加（`test/crop_preview_extreme_aspect_test.dart`、`test/image_pipeline_test.dart`）。

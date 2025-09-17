@@ -607,12 +607,40 @@ IntRect scaleRectBetweenSpaces(
   }
   final scaleX = toWidth / fromWidth;
   final scaleY = toHeight / fromHeight;
-  return IntRect(
-    left: (rect.left * scaleX).round(),
-    top: (rect.top * scaleY).round(),
-    width: (rect.width * scaleX).round(),
-    height: (rect.height * scaleY).round(),
-  );
+
+  // Compute by scaling edges to preserve area as much as possible.
+  int left = (rect.left * scaleX).round();
+  int top = (rect.top * scaleY).round();
+  int right = (rect.right * scaleX).round();
+  int bottom = (rect.bottom * scaleY).round();
+
+  // Ensure at least 1px in each dimension after rounding.
+  if (right <= left) {
+    right = left + 1;
+  }
+  if (bottom <= top) {
+    bottom = top + 1;
+  }
+
+  // Clamp within destination bounds if necessary.
+  if (left < 0) left = 0;
+  if (top < 0) top = 0;
+  if (right > toWidth) {
+    // shift left if needed to keep width
+    final deficit = right - toWidth;
+    left = (left - deficit).clamp(0, toWidth - 1);
+    right = toWidth;
+  }
+  if (bottom > toHeight) {
+    final deficit = bottom - toHeight;
+    top = (top - deficit).clamp(0, toHeight - 1);
+    bottom = toHeight;
+  }
+
+  final width = right - left;
+  final height = bottom - top;
+
+  return IntRect(left: left, top: top, width: width, height: height);
 }
 
 int _intersectArea(IntRect a, IntRect b) {
