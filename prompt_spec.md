@@ -162,6 +162,7 @@ UI/UXテスト
 • Web プロトタイプ（React）でトップ画面の文言/ボタン存在テスト（Vitest + RTL, `src/TopScreen.test.tsx`）
 • TFLite ランタイム導入を Web テストでも存在検証（`src/tflite_runtime_presence.test.ts` で Podfile/Gradle/models を確認）
 • C++ ネイティブテスト雛形の存在を Web テストで検証（`src/native_cpp_tests_presence.test.ts`）
+• C++ アルゴリズム骨子（ORB/SSIM/NMS）をファイル内容で検証（`src/native_algorithms_content.test.ts`）
 
 ⸻
 
