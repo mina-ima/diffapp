@@ -191,6 +191,7 @@ UI/UXテスト
 • 子供による操作テストの計画ドキュメントを整備（`diffapp/docs/ux_kids_test_plan.md`）。主要タスク・指標・倫理面・誤タップ/セマンティクス/音量を明記し、Web テストで存在検証（`src/ux_kids_usability_plan.test.ts`）。
 • ストア提出準備の一環として、スクリーンショット撮影計画ドキュメントを作成（`diffapp/assets/screenshots/README.md`）。Vitest で存在・記述を検証（`src/screenshot_prep.test.ts`）。
 • 主要ボタンに最小タップ領域 48x48 を適用し、Web テストで検証（`src/TopScreen.test.tsx`）。
+• パフォーマンス予算（1280px・5秒以内）ドキュメントを追加（`diffapp/docs/perf_budget.md`）し、Web テストで存在検証（`src/perf_budget_doc.test.ts`）。
 
 進捗注記（Ver1.2 現状）
 • 画像処理パイプラインの Dart 実装（1280幅正規化、矩形スケーリング、SSIM、二値化、連結成分、NMS、上位20件、設定反映、モックCNN）は実装・テスト済み
