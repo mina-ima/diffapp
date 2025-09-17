@@ -305,7 +305,7 @@ class _ComparePageState extends State<ComparePage>
                       height: 82,
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.redAccent, width: 3),
-                        color: Colors.redAccent.withValues(alpha: 0.06),
+                        color: Colors.redAccent.withOpacity(0.06),
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),

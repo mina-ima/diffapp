@@ -23,8 +23,8 @@ android {
         applicationId = "dev.minamidenshiimanaka.diffapp"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionCode = flutter.versionCode()
+        versionName = flutter.versionName()
 
         // ★ Apple Silicon のエミュ用に ABI を arm64 のみに限定（ビルド時間短縮・トラブル回避）
         ndk {

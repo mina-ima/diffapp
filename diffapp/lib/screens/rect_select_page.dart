@@ -149,7 +149,7 @@ class _RectSelectPageState extends State<RectSelectPage> {
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: Colors.redAccent, width: 2),
-            color: Colors.redAccent.withValues(alpha: 0.08),
+            color: Colors.redAccent.withOpacity(0.08),
           ),
         ),
       ),
@@ -189,7 +189,7 @@ class _RectSelectPageState extends State<RectSelectPage> {
               child: Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.redAccent, width: 2),
-                  color: Colors.redAccent.withValues(alpha: 0.08),
+                  color: Colors.redAccent.withOpacity(0.08),
                 ),
                 child: const Center(
                   child: Icon(Icons.drag_indicator, color: Colors.redAccent),

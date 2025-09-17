@@ -117,7 +117,7 @@ class _HomePageState extends State<HomePage> {
               key: const Key('start-inspect'),
               onPressed: _onStart,
               icon: const Icon(Icons.play_arrow),
-              label: const Text('けんさをはじめる'),
+              label: const Text('けんさせっていへ'),
             ),
             const SizedBox(height: 8),
             Text(
@@ -158,7 +158,20 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.image, size: 64, color: Colors.grey),
+            if (value?.bytes != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 140,
+                  child: Image.memory(
+                    value!.bytes!,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              )
+            else
+              const Icon(Icons.image, size: 64, color: Colors.grey),
             const SizedBox(height: 8),
             Text('$side 画像: ${value?.label ?? '未選択'}'),
             const SizedBox(height: 8),

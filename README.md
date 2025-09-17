@@ -18,6 +18,17 @@ Diffapp Ver1.2 — Flutter app (iOS/Android) for kids to spot differences betwee
 - Lint/Analyze: `fvm flutter analyze`
 - Test: `fvm flutter test`
 
+## Run on Android Emulator
+
+- One-liner from repo root: `pnpm android`
+  - Internally: launches the first Android emulator and runs the Flutter app in `diffapp/`.
+  - Prefers `fvm flutter` if available; falls back to `flutter`.
+- Manual steps
+  - Ensure Android SDK/Emulator installed (Android Studio > Device Manager)
+  - `cd diffapp && fvm flutter pub get`
+  - Launch an emulator (Android Studio or `flutter emulators --launch <id>`) and wait for boot
+  - Run: `fvm flutter run -d <emulator-id> --target lib/main.dart`
+
 ## Build
 
 - Android (Debug)

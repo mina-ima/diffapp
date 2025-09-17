@@ -1,14 +1,21 @@
+import 'dart:async';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../permissions.dart';
 
 class SelectedImage {
   final String label;
   final int width;
   final int height;
+  // 選択した画像のプレビュー用（任意）
+  final Uint8List? bytes;
   const SelectedImage({
     required this.label,
     required this.width,
     required this.height,
+    this.bytes,
   });
 }
 
@@ -63,14 +70,39 @@ class ImageSelectPage extends StatelessWidget {
       await _handleDenied(context, target: '写真');
       return;
     }
-    _pick(
-      context,
-      const SelectedImage(
-        label: 'ギャラリー（ダミー）(1600x900)',
-        width: 1600,
-        height: 900,
-      ),
-    );
+    try {
+      final picker = ImagePicker();
+      final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
+      if (picked == null) {
+        // キャンセルされた場合はそのまま残る
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('キャンセルしました')));
+        return;
+      }
+
+      final bytes = await picked.readAsBytes();
+      final completer = Completer<ui.Image>();
+      ui.decodeImageFromList(bytes, (img) => completer.complete(img));
+      final image = await completer.future;
+
+      if (!context.mounted) return;
+      final fileName = picked.name.isNotEmpty ? picked.name : '選択画像';
+      _pick(
+        context,
+        SelectedImage(
+          label: '$fileName (${image.width}x${image.height})',
+          width: image.width,
+          height: image.height,
+          bytes: bytes,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('画像の取得に失敗しました: $e')),
+      );
+    }
   }
 
   @override

@@ -18,8 +18,8 @@ void main() {
     await tester.tap(find.text('サンプルC'));
     await tester.pumpAndSettle();
 
-    // 比較開始→比較画面へ遷移
-    await tester.tap(find.text('けんさをはじめる'));
+    // 比較画面へ遷移
+    await tester.tap(find.text('けんさせっていへ'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
