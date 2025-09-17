@@ -151,7 +151,7 @@
   - [x] 前処理（サイズ統一）の寸法計算テスト（`test/image_pipeline_test.dart`）
   - [x] 設定モデルのシリアライズ/バリデーション（`test/settings_test.dart`）
   - [x] 矩形スケーリングのテスト（`scaleRectForResizedImage`）
-- [ ] ネイティブテスト（C++）
+- [x] ネイティブテスト（C++）
   - [x] テスト雛形/方針ドキュメントの追加（`diffapp/native/README.md`）
   - [x] ORB/SIFT マッチング精度確認（アルゴリズム骨子）
   - [x] SSIM 数値検証（アルゴリズム骨子）
@@ -160,6 +160,8 @@
   - [x] gtest 導入（CMake FetchContent・gtest_mainリンク・gtest用CPP雛形）
   - [x] gtest 数値検証（合成データ）を記述（ORB/SSIM/NMS）
   - [x] OpenCV 実データ（PGM資産）を使った gtest の記述を追加（imreadでの読み込みと確認）
+  - [x] CI に NDK ビルドジョブ（`native_gtest`）を追加
+  - [x] CI に エミュレータ実行ジョブ（`native_gtest_run`）を追加し、adb push/実行で gtest を走らせる
 - [x] 結合テスト
   - [x] 入力〜表示まで一連のフロー確認
   - [x] 設定が処理に反映されるか確認（効果音OFFで再生されない）
