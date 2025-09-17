@@ -6,4 +6,3 @@ linter:
     prefer_single_quotes: true
     avoid_print: true
     omit_local_variable_types: false
-

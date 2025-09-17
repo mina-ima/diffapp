@@ -20,39 +20,44 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "dev.minamidenshiimanaka.diffapp"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
+        // ★ Apple Silicon のエミュ用に ABI を arm64 のみに限定（ビルド時間短縮・トラブル回避）
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+            abiFilters.clear()
+            abiFilters += listOf("arm64-v8a")
+        }
+
+        // ★ CMake のフラグ（空でOK。必要になったら追記）
+        externalNativeBuild {
+            cmake {
+                // 例：必要に応じて "-std=c++17" などを追加
+                cppFlags += listOf("")
+            }
         }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // デバッグ署名のまま（必要に応じて署名を設定）
             signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    // ★ CMakeLists.txt へのパスは app/ からの相対で記述
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
         }
     }
 }
 
 flutter {
     source = "../.."
-}
-
-android {
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-        }
-    }
 }
 
 dependencies {

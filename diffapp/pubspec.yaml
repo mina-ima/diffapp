@@ -1,9 +1,9 @@
 name: diffapp
 description: Diffapp Ver1.2 – minimal Flutter scaffold for TDD
-publish_to: "none"
+publish_to: 'none'
 
 environment:
-  sdk: ">=3.4.0 <4.0.0"
+  sdk: '>=3.4.0 <4.0.0'
 
 dependencies:
   flutter:

@@ -1,4 +1,5 @@
-# Diffapp Ver1.2 
+# Diffapp Ver1.2
+
 ## 0. プロジェクト初期化
 
 - [x] Flutter SDK バージョンを決定（例: 3.22.0）
