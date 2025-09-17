@@ -14,8 +14,8 @@ void main() {
       ),
     );
 
-    // 「けんさをはじめる」を押すと、ゼロ件想定でメッセージを表示する
-    await tester.tap(find.text('けんさをはじめる（ダミー）'));
+    // 「検査をはじめる」を押すと、ゼロ件想定でメッセージを表示する
+    await tester.tap(find.text('検査をはじめる'));
     await tester.pump();
 
     expect(find.text('ちがいは みつかりませんでした'), findsOneWidget);

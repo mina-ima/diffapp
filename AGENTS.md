@@ -43,3 +43,35 @@ Android/Flutter の動作確認フロー
 
 - Flutter/Dart の単体テスト: `cd diffapp && fvm flutter test -r compact`
 - 静的解析: `cd diffapp && fvm flutter analyze`
+
+---
+
+開発の進め方（TDD → シミュレータ再起動＆動作確認 → コミット → ドキュメント更新）
+
+- 前提:
+  - 「シミュレータの再起動」はエージェント（私）が実施します。
+  - 「動作確認（画面操作・結果確認）」は開発者（あなた）が Android シミュレータ上で手動で行います。
+- 手順:
+  1. 失敗するテストを書く
+     - Web/CI/ドキュメント検証: Vitest（`pnpm test`）
+     - Flutter機能/UI: Flutter テスト（`cd diffapp && fvm flutter test`）
+  2. テストに合格する最小実装を行う
+  3. 品質チェック一式を実行
+     - ルート: `pnpm format && pnpm lint && pnpm typecheck && pnpm test`
+     - Flutter: `cd diffapp && fvm flutter analyze && fvm flutter test -r compact`
+  4. シミュレータ再起動（エージェントが実施） → 手動動作確認（あなたが実施）
+     - 再起動（エージェント）: `adb -s <emulator-id> reboot` 実行 → `sys.boot_completed=1` まで待機
+       - 端末ID確認: `cd diffapp && fvm flutter devices`（例: `emulator-5554`）
+     - アプリ起動（あなた）: `pnpm android` で自動起動
+       - 失敗時は `cd diffapp && fvm flutter run -d <emulator-id> --target lib/main.dart`
+     - 画面で期待動作を目視確認（例: ギャラリー選択→ホームでプレビュー反映）
+  5. コミット
+     - メッセージは日本語で分かりやすく要点を含める
+  6. ドキュメント更新
+     - `prompt_spec.md` と `todo.md` を最新状態に反映
+  7. いったん停止して、次工程へ進むか確認
+
+備考:
+
+- FVMやAVDの準備・起動方法は「Android/Flutter の動作確認フロー」を参照
+- 実装→テスト→手動確認の順序は崩さない（回帰を防止）

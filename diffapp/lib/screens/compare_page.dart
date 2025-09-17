@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'dart:typed_data';
 import 'package:diffapp/image_pipeline.dart';
 import 'package:diffapp/screens/rect_select_page.dart';
 import 'package:diffapp/screens/image_select_page.dart';
 import 'package:diffapp/sound_effects.dart';
 import 'package:diffapp/logger.dart';
+import 'package:diffapp/settings.dart';
+import 'package:diffapp/screens/settings_page.dart';
+import 'package:diffapp/screens/result_page.dart';
+import 'dart:io';
 
 class ComparePage extends StatefulWidget {
   final SelectedImage left;
@@ -79,6 +84,7 @@ class _ComparePageState extends State<ComparePage>
 
     // いまはダミー検出：常にゼロ件とする
     final List<IntRect> results = <IntRect>[];
+    // 結果メッセージ（従来の挙動を維持）
     if (results.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ちがいは みつかりませんでした')),
@@ -88,6 +94,18 @@ class _ComparePageState extends State<ComparePage>
         SnackBar(content: Text('検出数: ${results.length}')),
       );
     }
+    // 検査結果ページへ遷移
+    Navigator.of(context)
+        .push<bool>(
+          MaterialPageRoute(
+            builder: (_) => ResultPage(noDifferences: results.isEmpty),
+          ),
+        )
+        .then((reset) {
+      if (reset == true) {
+        _reset();
+      }
+    });
   }
 
   void _reset() {
@@ -104,17 +122,25 @@ class _ComparePageState extends State<ComparePage>
   }
 
   Future<void> _selectRect() async {
-    final result = await Navigator.of(context).push<IntRect>(
+    final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => RectSelectPage(
           title: '左の範囲をえらぶ',
           imageWidth: _leftNorm.width,
           imageHeight: _leftNorm.height,
+          initialRect: _leftRect,
         ),
       ),
     );
-    if (result != null) {
+    if (result == null) return;
+    if (result is IntRect) {
       setState(() => _leftRect = result);
+    } else if (result is (IntRect, bool)) {
+      final (rect, applyRight) = result;
+      setState(() => _leftRect = rect);
+      if (applyRight == true) {
+        _applySameRectToRight();
+      }
     }
   }
 
@@ -134,7 +160,7 @@ class _ComparePageState extends State<ComparePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('比較')),
+      appBar: AppBar(title: const Text('けんさせってい')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -149,6 +175,8 @@ class _ComparePageState extends State<ComparePage>
                       dims: _leftNorm,
                       rect: _leftRect,
                       isLeft: true,
+                      bytes: widget.left.bytes,
+                      path: widget.left.path,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -158,6 +186,8 @@ class _ComparePageState extends State<ComparePage>
                       dims: _rightNorm,
                       rect: _rightRect,
                       isLeft: false,
+                      bytes: widget.right.bytes,
+                      path: widget.right.path,
                     ),
                   ),
                 ],
@@ -170,43 +200,34 @@ class _ComparePageState extends State<ComparePage>
                   child: OutlinedButton.icon(
                     onPressed: _selectRect,
                     icon: const Icon(Icons.crop),
-                    label: const Text('範囲指定（左）'),
+                    label: const Text('範囲指定'),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _leftRect != null ? _applySameRectToRight : null,
-                    icon: const Icon(Icons.copy_all),
-                    label: const Text('同座標適用（右へ）'),
+                    onPressed: () async {
+                      // 設定ページへ（ホームの歯車と同じ遷移先）
+                      await Navigator.of(context).push<Settings>(
+                        MaterialPageRoute(
+                            builder: (_) => SettingsPage(initial: Settings.initial())),
+                      );
+                    },
+                    icon: const Icon(Icons.tune),
+                    label: const Text('検査精度設定'),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: OutlinedButton.icon(
                     onPressed: () => _startDetection(context),
                     icon: const Icon(Icons.play_arrow),
-                    label: const Text('けんさをはじめる（ダミー）'),
+                    label: const Text('検査をはじめる'),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            const Center(
-              child: Text(
-                'スクショをとろう！',
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: OutlinedButton.icon(
-                onPressed: _reset,
-                icon: const Icon(Icons.refresh),
-                label: const Text('再比較'),
-              ),
-            ),
+            // スクショ案内と再比較ボタンは検査結果ページへ移動
           ],
         ),
       ),
@@ -262,6 +283,8 @@ class _ComparePageState extends State<ComparePage>
     required Dimensions dims,
     IntRect? rect,
     required bool isLeft,
+    Uint8List? bytes,
+    String? path,
   }) {
     return Card(
       elevation: 1,
@@ -273,7 +296,26 @@ class _ComparePageState extends State<ComparePage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.image, size: 64, color: Colors.grey),
+                if (bytes != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 160,
+                      child: Image.memory(bytes, fit: BoxFit.cover),
+                    ),
+                  )
+                else if (path != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 160,
+                      child: Image.file(File(path), fit: BoxFit.cover),
+                    ),
+                  )
+                else
+                  const Icon(Icons.image, size: 64, color: Colors.grey),
                 const SizedBox(height: 8),
                 Text('$label  (${dims.width}x${dims.height})'),
                 if (rect != null) ...[

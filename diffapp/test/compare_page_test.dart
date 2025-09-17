@@ -13,11 +13,14 @@ void main() {
         home: ComparePage(left: left, right: right),
       ),
     );
+    // 検査開始→結果画面へ
+    await tester.tap(find.text('検査をはじめる'));
+    await tester.pumpAndSettle();
 
     expect(find.text('スクショをとろう！'), findsOneWidget);
   });
 
-  testWidgets('再比較ボタンを押すと案内SnackBarが出る', (tester) async {
+  testWidgets('結果画面の再比較ボタンでCompareへ戻りSnackBarが出る', (tester) async {
     const left = SelectedImage(label: 'L', width: 4000, height: 3000);
     const right = SelectedImage(label: 'R', width: 1920, height: 1080);
 
@@ -26,11 +29,12 @@ void main() {
         home: ComparePage(left: left, right: right),
       ),
     );
-
-    expect(find.text('再比較'), findsOneWidget);
+    // 結果画面へ
+    await tester.tap(find.text('検査をはじめる'));
+    await tester.pumpAndSettle();
+    // 再比較を押す→戻ってSnackBar
     await tester.tap(find.text('再比較'));
     await tester.pump();
-
     expect(find.text('最初からやりなおします'), findsOneWidget);
   });
 }

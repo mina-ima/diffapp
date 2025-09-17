@@ -1,0 +1,19 @@
+# Ignore generated/build artifacts and third-party sources
+node_modules/
+dist/
+coverage/
+
+# Flutter/Android/iOS build outputs
+diffapp/**/build/
+diffapp/**/.dart_tool/
+diffapp/android/app/.cxx/
+diffapp/android/.cxx/
+diffapp/android/build/
+diffapp/ios/Pods/
+diffapp/macos/Pods/
+
+# External vendored docs with templating that Prettier can't parse
+diffapp/android/app/.cxx/**/_deps/
+
+# Platform project metadata
+diffapp/.fvm/

@@ -17,8 +17,8 @@ void main() {
     // まだ左側は未選択
     expect(find.textContaining('選択: l=').evaluate().length, 0);
 
-    // 範囲指定（左）を開く（ComparePageに常時アニメがあるため、pumpAndSettleは使わない）
-    await tester.tap(find.text('範囲指定（左）'));
+    // 範囲指定を開く（ComparePageに常時アニメがあるため、pumpAndSettleは使わない）
+    await tester.tap(find.text('範囲指定'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 

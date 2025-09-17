@@ -23,12 +23,15 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    // 比較画面の要素が表示されていること
-    expect(find.text('比較'), findsOneWidget);
-    expect(find.text('スクショをとろう！'), findsOneWidget);
-
+    // 比較（設定）画面の見出しが新仕様に沿っていること
+    expect(find.text('けんさせってい'), findsOneWidget);
     // 赤枠ハイライトも存在（キーにより両側）
     expect(find.byKey(const Key('highlight-left')), findsOneWidget);
     expect(find.byKey(const Key('highlight-right')), findsOneWidget);
+
+    // 検査開始→結果画面でスクショ案内が表示される
+    await tester.tap(find.text('検査をはじめる'));
+    await tester.pumpAndSettle();
+    expect(find.text('スクショをとろう！'), findsOneWidget);
   });
 }

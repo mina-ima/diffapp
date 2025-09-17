@@ -28,10 +28,11 @@ void main() {
     // 初期状態では右は未選択
     expect(find.textContaining('選択: l=').evaluate().length, 1);
 
-    // 同座標適用を押す
-    final applyBtn = find.text('同座標適用（右へ）');
-    expect(applyBtn, findsOneWidget);
-    await tester.tap(applyBtn);
+    // 範囲指定を開いて「同座標適用（右へ）」を押す
+    await tester.tap(find.text('範囲指定'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('同座標適用（右へ）'));
     await tester.pump();
 
     // 右側にも矩形が反映（y方向のみ0.75倍される想定）

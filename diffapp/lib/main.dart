@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:diffapp/settings.dart';
 import 'package:diffapp/screens/settings_page.dart';
@@ -166,6 +167,18 @@ class _HomePageState extends State<HomePage> {
                   height: 140,
                   child: Image.memory(
                     value!.bytes!,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              )
+            else if (value?.path != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 140,
+                  child: Image.file(
+                    File(value!.path!),
                     fit: BoxFit.cover,
                   ),
                 ),

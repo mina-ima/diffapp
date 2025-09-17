@@ -55,12 +55,13 @@ void main() {
 
     // 比較画面に到達していることを確認
     expect(find.text('比較'), findsOneWidget);
+
+    // 検出開始を押す → 効果音はOFFなので鳴らない
+    await tester.tap(find.text('検査をはじめる'));
+    await tester.pumpAndSettle();
+    // 結果画面に遷移している（スクショ案内が見える）
     expect(find.text('スクショをとろう！'), findsOneWidget);
-
-    // 検出開始（ダミー）を押す → 効果音はOFFなので鳴らない
-    await tester.tap(find.text('けんさをはじめる（ダミー）'));
-    await tester.pump();
-
+    
     expect(fake.calls, isEmpty);
   });
 }

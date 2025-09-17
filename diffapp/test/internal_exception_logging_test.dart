@@ -37,7 +37,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('けんさをはじめる（ダミー）'));
+    await tester.tap(find.text('検査をはじめる'));
     await tester.pump();
 
     // 一般メッセージが表示される

@@ -36,6 +36,10 @@ class _RectSelectPageState extends State<RectSelectPage> {
   void _save() {
     Navigator.of(context).pop(_rect);
   }
+  void _saveAndApplyRight() {
+    // 戻り値は (IntRect, bool applyToRight)
+    Navigator.of(context).pop((_rect, true));
+  }
 
   void _toggleMode() {
     setState(() => _editMode = !_editMode);
@@ -70,6 +74,12 @@ class _RectSelectPageState extends State<RectSelectPage> {
             ),
             const SizedBox(height: 8),
             Expanded(child: _editMode ? _buildEditable() : _buildZoomable()),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _saveAndApplyRight,
+              icon: const Icon(Icons.copy_all),
+              label: const Text('同座標適用（右へ）'),
+            ),
           ],
         ),
       ),
