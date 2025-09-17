@@ -198,3 +198,4 @@ UI/UXテスト
 • 特徴点抽出の Dart 雛形（Harris + BRIEF）を追加し、検出・記述・単純マッチのユニットテストを作成（`lib/features.dart`, `test/features_harris_brief_test.dart`）
 • CNN 検出の FFI スタブ注入構造を追加：`FfiCnnDetector` に `CnnNative` を注入可能にし、未接続時は `MockCnnDetector` にフォールバック（`test/ffi_cnn_detector_native_test.dart`）
 • OSS ライセンス専用ページ `OssLicensesPage` を追加し、設定から遷移（`test/licenses_custom_page_test.dart`）
+• Android NDK の CMake に OpenCV 連携（find_package/include/link）の雛形を追加し、Web 側でも存在検証（`src/opencv_ndk_config.test.ts`）

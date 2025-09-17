@@ -45,6 +45,7 @@
   - [x] Android 用に CMake ビルド → .so 生成（arm64-v8a / armeabi-v7a）
   - [x] Xcode プロジェクトに組込（pbxproj のブリッジングヘッダ/CLANG_CXX_LIBRARY 等の検証を追加）
   - [x] Android Studio jniLibs に配置
+  - [x] Android NDK の CMake に OpenCV 連携の雛形（find_package/include/link）を追加
 - [x] TFLite ランタイム導入
   - [x] iOS Podfile に追加
   - [x] Android Gradle に追加
