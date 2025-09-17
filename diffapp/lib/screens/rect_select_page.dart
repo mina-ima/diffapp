@@ -62,10 +62,12 @@ class _RectSelectPageState extends State<RectSelectPage> {
             icon: Icon(_editMode ? Icons.search : Icons.edit),
             onPressed: _toggleMode,
           ),
-          IconButton(
-            icon: const Icon(Icons.check),
-            tooltip: '保存',
-            onPressed: _save,
+          Tooltip(
+            message: '保存',
+            child: TextButton(
+              onPressed: _save,
+              child: const Text('保存'),
+            ),
           ),
         ],
       ),
