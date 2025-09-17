@@ -201,3 +201,4 @@ UI/UXテスト
 • CNN 検出の FFI スタブ注入構造を追加：`FfiCnnDetector` に `CnnNative` を注入可能にし、未接続時は `MockCnnDetector` にフォールバック（`test/ffi_cnn_detector_native_test.dart`）
 • OSS ライセンス専用ページ `OssLicensesPage` を追加し、設定から遷移（`test/licenses_custom_page_test.dart`）
 • Android NDK の CMake に OpenCV 連携（find_package/include/link）の雛形を追加し、Web 側でも存在検証（`src/opencv_ndk_config.test.ts`）
+• iOS 向けの OpenCV CMake 雛形/README/ビルドスクリプトを追加し、Web 側でも存在検証（`src/opencv_ios_build_config.test.ts`）
