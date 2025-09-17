@@ -150,6 +150,7 @@
   - [x] 設定モデルのシリアライズ/バリデーション（`test/settings_test.dart`）
   - [x] 矩形スケーリングのテスト（`scaleRectForResizedImage`）
 - [ ] ネイティブテスト（C++）
+  - [x] テスト雛形/方針ドキュメントの追加（`diffapp/native/README.md`）
   - [ ] ORB/SIFT マッチング精度確認
   - [ ] SSIM 数値検証
   - [ ] NMS 重複除去テスト
