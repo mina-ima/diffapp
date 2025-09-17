@@ -163,6 +163,7 @@ UI/UXテスト
 • TFLite ランタイム導入を Web テストでも存在検証（`src/tflite_runtime_presence.test.ts` で Podfile/Gradle/models を確認）
 • C++ ネイティブテスト雛形の存在を Web テストで検証（`src/native_cpp_tests_presence.test.ts`）
 • C++ アルゴリズム骨子（ORB/SSIM/NMS）をファイル内容で検証（`src/native_algorithms_content.test.ts`）
+• Android NDK 用 CMake にテストターゲット（add_executable）を定義し、Web テストで存在検証（`src/native_gtest_build_config.test.ts`）
 
 ⸻
 
