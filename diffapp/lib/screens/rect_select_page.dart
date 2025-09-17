@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:diffapp/image_pipeline.dart';
 import 'package:flutter/material.dart';
 
@@ -6,6 +8,8 @@ class RectSelectPage extends StatefulWidget {
   final int imageWidth;
   final int imageHeight;
   final IntRect? initialRect;
+  final Uint8List? imageBytes;
+  final String? imagePath;
 
   const RectSelectPage({
     super.key,
@@ -13,6 +17,8 @@ class RectSelectPage extends StatefulWidget {
     this.imageWidth = 1280,
     this.imageHeight = 960,
     this.initialRect,
+    this.imageBytes,
+    this.imagePath,
   });
 
   @override
@@ -97,7 +103,7 @@ class _RectSelectPageState extends State<RectSelectPage> {
             width: viewW,
             height: viewH,
             child: Stack(
-              children: [_imagePlaceholder(), _buildDraggableRect(scale)],
+              children: [_imageLayer(), _buildDraggableRect(scale)],
             ),
           ),
         );
@@ -119,9 +125,7 @@ class _RectSelectPageState extends State<RectSelectPage> {
             child: InteractiveViewer(
               minScale: 1,
               maxScale: 4,
-              child: Stack(
-                children: [_imagePlaceholder(), _buildRectOnly(scale)],
-              ),
+              child: Stack(children: [_imageLayer(), _buildRectOnly(scale)]),
             ),
           ),
         );
@@ -135,7 +139,27 @@ class _RectSelectPageState extends State<RectSelectPage> {
     return sx < sy ? sx : sy;
   }
 
-  Widget _imagePlaceholder() {
+  Widget _imageLayer() {
+    final bytes = widget.imageBytes;
+    final path = widget.imagePath;
+    if (bytes != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: SizedBox.expand(
+          key: const Key('rect-select-image'),
+          child: Image.memory(bytes, fit: BoxFit.cover),
+        ),
+      );
+    }
+    if (path != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: SizedBox.expand(
+          key: const Key('rect-select-image'),
+          child: Image.file(File(path), fit: BoxFit.cover),
+        ),
+      );
+    }
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(6),

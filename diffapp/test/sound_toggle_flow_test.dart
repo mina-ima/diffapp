@@ -53,8 +53,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
-    // 比較画面に到達していることを確認
-    expect(find.text('比較'), findsOneWidget);
+    // 比較（設定）画面に到達していることを確認（見出しが新仕様）
+    expect(find.text('けんさせってい'), findsOneWidget);
 
     // 検出開始を押す → 効果音はOFFなので鳴らない
     await tester.tap(find.text('検査をはじめる'));

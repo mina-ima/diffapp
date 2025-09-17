@@ -125,10 +125,12 @@ class _ComparePageState extends State<ComparePage>
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => RectSelectPage(
-          title: '左の範囲をえらぶ',
+          title: '範囲指定（左画像で設定）',
           imageWidth: _leftNorm.width,
           imageHeight: _leftNorm.height,
           initialRect: _leftRect,
+          imageBytes: widget.left.bytes,
+          imagePath: widget.left.path,
         ),
       ),
     );

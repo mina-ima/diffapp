@@ -189,6 +189,8 @@ UI/UXテスト
 • 設定画面に「OSS ライセンス」リンクを追加（Materialの showLicensePage を使用して一覧表示）
 • 設定画面に「プライバシーポリシー」リンクを追加（簡易ページ `PrivacyPolicyPage` を実装）
 • 矩形選択画面に編集/拡大モード切替を実装（ウィジェットテストを追加し挙動を検証）
+• 矩形選択画面の見出しは「範囲指定（左画像で設定）」とする
+• 矩形選択画面では左で選んだ画像を背景に表示（Image.memory / Image.file の両方に対応）
 • 比較画面のハイライトにセマンティクスラベルを付与（VoiceOver/TalkBack で認識可能）
 • 子供による操作テストの計画ドキュメントを整備（`diffapp/docs/ux_kids_test_plan.md`）。主要タスク・指標・倫理面・誤タップ/セマンティクス/音量を明記し、Web テストで存在検証（`src/ux_kids_usability_plan.test.ts`）。
 • ストア提出準備の一環として、スクリーンショット撮影計画ドキュメントを作成（`diffapp/assets/screenshots/README.md`）。Vitest で存在・記述を検証（`src/screenshot_prep.test.ts`）。
