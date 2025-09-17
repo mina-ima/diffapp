@@ -30,4 +30,26 @@ describe('TopScreen (仕様: トップ画面)', () => {
     render(<TopScreen />);
     expect(screen.getByRole('button', { name: '設定' })).toBeInTheDocument();
   });
+
+  test('主要ボタンのタップ領域が48x48以上である', () => {
+    render(<TopScreen />);
+    const left = screen.getByRole('button', { name: '左のがぞうをえらぶ' });
+    const right = screen.getByRole('button', { name: '右のがぞうをえらぶ' });
+    const start = screen.getByRole('button', { name: 'けんさをはじめる' });
+    const settings = screen.getByRole('button', { name: '設定' });
+
+    // JSDOMではレイアウト計算がないため、style属性の最小寸法を検証する
+    const assertMinSize = (el: HTMLElement) => {
+      const style = (el as HTMLElement).style;
+      expect(style.minWidth).toBeDefined();
+      expect(style.minHeight).toBeDefined();
+      expect(style.minWidth).toMatch(/48(px)?/);
+      expect(style.minHeight).toMatch(/48(px)?/);
+    };
+
+    assertMinSize(left);
+    assertMinSize(right);
+    assertMinSize(start);
+    assertMinSize(settings);
+  });
 });
