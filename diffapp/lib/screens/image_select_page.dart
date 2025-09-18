@@ -108,10 +108,16 @@ class ImageSelectPage extends StatelessWidget {
 
       if (!context.mounted) return;
       final fileName = picked.name.isNotEmpty ? picked.name : '選択画像';
+      // ログ: 選択画像のファイル名と実寸（EXIF考慮）
+      // Flutter の debugPrint は adb logcat で "flutter" タグとして参照できる。
+      // 例: adb -s <id> logcat | grep -E 'flutter|Diffapp'
+      // ignore: avoid_print
+      debugPrint('[Diffapp][select] name=$fileName size=${dims.$1}x${dims.$2} path=${picked.path}');
       _pick(
         context,
         SelectedImage(
-          label: '$fileName (${dims.$1}x${dims.$2})',
+          // UI混乱回避のため、ラベルはファイル名のみを表示（寸法は非表示）。
+          label: fileName,
           width: dims.$1,
           height: dims.$2,
           // プレビューはメモリ画像を優先（File パスに依存しない）

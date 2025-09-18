@@ -258,6 +258,8 @@ class _ComparePageState extends State<ComparePage>
       _rightNorm.height,
     );
     setState(() => _rightRect = mapped);
+    // ログ: 左→右に矩形を適用したイベント
+    debugPrint('[Diffapp][rect] left=${_leftRect} -> right=${_rightRect} (L$_leftNorm R$_rightNorm)');
   }
 
   @override
@@ -370,6 +372,9 @@ class _ComparePageState extends State<ComparePage>
       rightClamped.height,
       targetMaxWidth: 1280,
     );
+    // ログ: 入力寸法と表示正規化寸法
+    debugPrint('[Diffapp][init] leftInput=${widget.left.width}x${widget.left.height} rightInput=${widget.right.width}x${widget.right.height}');
+    debugPrint('[Diffapp][init] leftNorm=${_leftNorm.width}x${_leftNorm.height} rightNorm=${_rightNorm.width}x${_rightNorm.height}');
     // 初期矩形（テストや再入場時向けのフック）
     _leftRect = widget.initialLeftRect ?? _leftRect;
     _rightRect = widget.initialRightRect ?? _rightRect;
@@ -430,7 +435,8 @@ class _ComparePageState extends State<ComparePage>
                     const Icon(Icons.image, size: 64, color: Colors.grey),
                 ],
                 const SizedBox(height: 8),
-                Text('$label  (${dims.width}x${dims.height})'),
+                // UI混乱回避のため、解像度表記は非表示にする
+                Text(label),
                 if (rect != null) ...[
                   const SizedBox(height: 8),
                   Text(
