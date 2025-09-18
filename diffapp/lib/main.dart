@@ -143,6 +143,7 @@ class _HomePageState extends State<HomePage> {
           left: _leftImage!,
           right: _rightImage!,
           enableSound: _settings.enableSound,
+          settings: _settings,
         ),
       ),
     );

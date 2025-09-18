@@ -19,12 +19,16 @@ class ComparePage extends StatefulWidget {
   final IntRect? initialLeftRect;
   final IntRect? initialRightRect;
   final bool enableSound;
+  // 検出の設定（精度やカテゴリ）。指定が無い場合は初期設定。
+  final Settings? settings;
   // テスト・デモ用のフック：モデル読込失敗をシミュレート
   final bool simulateModelLoadFailure;
   // テスト・デモ用のフック：タイムアウトをシミュレート
   final bool simulateTimeout;
   // テスト・デモ用のフック：内部例外をシミュレート
   final bool simulateInternalError;
+  // テスト用：検出器を差し替えられるようにする
+  final CnnDetector? detector;
 
   const ComparePage({
     super.key,
@@ -33,9 +37,11 @@ class ComparePage extends StatefulWidget {
     this.initialLeftRect,
     this.initialRightRect,
     this.enableSound = true,
+    this.settings,
     this.simulateModelLoadFailure = false,
     this.simulateTimeout = false,
     this.simulateInternalError = false,
+    this.detector,
   });
 
   @override
@@ -137,13 +143,13 @@ class _ComparePageState extends State<ComparePage>
     final diff = ssim.map((v) => 1.0 - v).toList();
     final diffN = normalizeToUnit(diff);
 
-    final detector = FfiCnnDetector();
+    final detector = widget.detector ?? FfiCnnDetector();
     await detector.load(Uint8List(0)); // モデル無しでもロード済み扱い
     final detections = detector.detectFromDiffMap(
       diffN,
       targetW,
       targetH,
-      settings: Settings.initial(),
+      settings: widget.settings ?? Settings.initial(),
       maxOutputs: 20,
       iouThreshold: 0.3,
     );
