@@ -22,6 +22,7 @@
   - [x] build 実行を追加（Android debug／プラットフォームが無ければ CI が `flutter create --org dev.minamidenshiimanaka .` 実行）
   - [x] iOS シミュレータ用ビルド（no codesign）を追加（macOS ランナー）
   - [x] ルートの Android 補助スクリプト（`android:doctor` / `android:emulators`）を FVM 優先に統一
+  - [x] エミュレータ再起動補助 `android:reboot` を追加（`scripts/reboot_android.sh`）
   - [x] 署名付き iOS/Android リリースビルドを追加（Secrets がある場合のみ実行）
 
 ---

@@ -10,7 +10,8 @@
     "test": "vitest run",
     "android": "bash scripts/run_android.sh",
     "android:doctor": "cd diffapp && fvm flutter doctor -v",
-    "android:emulators": "fvm flutter emulators && fvm flutter devices"
+    "android:emulators": "fvm flutter emulators && fvm flutter devices",
+    "android:reboot": "bash scripts/reboot_android.sh"
   },
   "devDependencies": {
     "jsdom": "^24.1.1",

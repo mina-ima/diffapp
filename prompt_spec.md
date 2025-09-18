@@ -74,6 +74,7 @@ AIモデル TensorFlow Lite（CNN） 形・文字認識補強
 - ルート `package.json` の Android 補助コマンドは FVM の `flutter` を優先
   - `pnpm android:doctor` → `cd diffapp && fvm flutter doctor -v`
   - `pnpm android:emulators` → `fvm flutter emulators && fvm flutter devices`
+  - `pnpm android:reboot` → `bash scripts/reboot_android.sh <emulator-id>`（ADBで再起動し、`sys.boot_completed=1` まで待機）
 
     2.7 結果表示
     • 左右画像を並列表示
