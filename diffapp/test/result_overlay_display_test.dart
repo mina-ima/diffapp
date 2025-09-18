@@ -45,9 +45,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
 
-    // 結果ページに検出オーバーレイ（左/右）が少なくとも1件表示されること
+    // 結果ページに検出オーバーレイ（左のみ）が少なくとも1件表示されること
     expect(find.byKey(const Key('det-left-0')), findsOneWidget);
-    expect(find.byKey(const Key('det-right-0')), findsOneWidget);
   });
 }
-

@@ -9,19 +9,20 @@ class ResultPage extends StatelessWidget {
   final List<IntRect> detections;
   // 表示用の正規化寸法（ComparePageと同じ基準）
   final Dimensions leftNorm;
-  final Dimensions rightNorm;
   // 元画像（表示のために受け取る）
   final SelectedImage left;
   final SelectedImage right;
+  // 範囲指定（左の正規化空間）。null の場合は全体表示。
+  final IntRect? selectedLeftRect;
 
   const ResultPage({
     super.key,
     required this.noDifferences,
     required this.detections,
     required this.leftNorm,
-    required this.rightNorm,
     required this.left,
     required this.right,
+    this.selectedLeftRect,
   });
 
   @override
@@ -43,28 +44,14 @@ class ResultPage extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text('検出数: ${detections.length}'),
               ),
-            // 左右の結果オーバーレイ
+            // 左画像のみ表示（けんさせってい画面と同じ基準のプレビュー）
             Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _DetectionOverlay(
-                      tag: 'left',
-                      image: left,
-                      norm: leftNorm,
-                      detections: detections,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _DetectionOverlay(
-                      tag: 'right',
-                      image: right,
-                      norm: rightNorm,
-                      detections: detections,
-                    ),
-                  ),
-                ],
+              child: _DetectionOverlay(
+                tag: 'left',
+                image: left,
+                norm: leftNorm,
+                detections: detections,
+                crop: selectedLeftRect,
               ),
             ),
             const SizedBox(height: 12),
@@ -99,6 +86,8 @@ class _DetectionOverlay extends StatelessWidget {
   final Dimensions norm;
   final List<IntRect> detections; // 64x64 座標
   final double preferredViewportHeight;
+  // 正規化空間でのクロップ矩形（けんさせっていで選択）。null なら全体表示。
+  final IntRect? crop;
 
   const _DetectionOverlay({
     required this.tag,
@@ -106,20 +95,22 @@ class _DetectionOverlay extends StatelessWidget {
     required this.norm,
     required this.detections,
     this.preferredViewportHeight = 160.0,
+    this.crop,
   });
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // 高さ優先で表示スケールを決定（幅オーバー時は幅に合わせて再スケール）
-        double s = preferredViewportHeight / norm.height;
-        double viewW = norm.width * s;
-        double viewH = norm.height * s;
+        // 表示対象（全体 or クロップ）に合わせてスケールを決定
+        final targetRect = crop ?? IntRect(left: 0, top: 0, width: norm.width, height: norm.height);
+        double s = preferredViewportHeight / targetRect.height;
+        double viewW = targetRect.width * s;
+        double viewH = targetRect.height * s;
         if (viewW > constraints.maxWidth) {
-          s = constraints.maxWidth / norm.width;
-          viewW = norm.width * s;
-          viewH = norm.height * s;
+          s = constraints.maxWidth / targetRect.width;
+          viewW = targetRect.width * s;
+          viewH = targetRect.height * s;
         }
 
         Widget imageChild;
@@ -131,11 +122,13 @@ class _DetectionOverlay extends StatelessWidget {
           imageChild = const Icon(Icons.image, size: 64, color: Colors.grey);
         }
 
-        // 64x64 → 正規化寸法 → 表示スケールs
+        // 64x64 → 正規化寸法 → 表示スケールs（さらにクロップ原点を原点に）
         const srcW = 64;
         const srcH = 64;
-        final scaleX = (norm.width / srcW) * s;
-        final scaleY = (norm.height / srcH) * s;
+        final toNormX = norm.width / srcW;
+        final toNormY = norm.height / srcH;
+        final cropLeft = targetRect.left;
+        final cropTop = targetRect.top;
 
         return Center(
           child: SizedBox(
@@ -146,9 +139,12 @@ class _DetectionOverlay extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Transform.scale(
+                  child: Transform(
                     alignment: Alignment.topLeft,
-                    scale: s,
+                    // CroppedImage と同じ表示：全体を s 倍し、-crop を平行移動
+                    transform: Matrix4.identity()
+                      ..scale(s, s)
+                      ..translate(-cropLeft.toDouble(), -cropTop.toDouble()),
                     child: SizedBox(
                       width: norm.width.toDouble(),
                       height: norm.height.toDouble(),
@@ -165,22 +161,29 @@ class _DetectionOverlay extends StatelessWidget {
                   ),
                 ),
                 // 矩形オーバーレイ
-                for (var i = 0; i < detections.length; i++)
-                  Positioned(
-                    key: Key('det-$tag-$i'),
-                    left: detections[i].left * scaleX,
-                    top: detections[i].top * scaleY,
-                    width: detections[i].width * scaleX,
-                    height: detections[i].height * scaleY,
-                    child: IgnorePointer(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.redAccent, width: 2),
-                          color: Colors.transparent,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Stack(
+                    children: [
+                      for (var i = 0; i < detections.length; i++)
+                        Positioned(
+                          key: Key('det-$tag-$i'),
+                          left: (detections[i].left * toNormX - cropLeft) * s,
+                          top: (detections[i].top * toNormY - cropTop) * s,
+                          width: (detections[i].width * toNormX) * s,
+                          height: (detections[i].height * toNormY) * s,
+                          child: IgnorePointer(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.redAccent, width: 2),
+                                color: Colors.transparent,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+                    ],
                   ),
+                ),
               ],
             ),
           ),

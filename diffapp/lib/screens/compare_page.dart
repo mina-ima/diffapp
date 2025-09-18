@@ -119,9 +119,9 @@ class _ComparePageState extends State<ComparePage>
               noDifferences: results.isEmpty,
               detections: results,
               leftNorm: _leftNorm,
-              rightNorm: _rightNorm,
               left: widget.left,
               right: widget.right,
+              selectedLeftRect: _leftRect,
             ),
           ),
         )
