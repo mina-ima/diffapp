@@ -111,11 +111,18 @@ class _ComparePageState extends State<ComparePage>
         SnackBar(content: Text('検出数: ${results.length}')),
       );
     }
-    // 検査結果ページへ遷移
+    // 検査結果ページへ遷移（検出矩形と表示寸法・元画像を渡す）
     Navigator.of(context)
         .push<bool>(
           MaterialPageRoute(
-            builder: (_) => ResultPage(noDifferences: results.isEmpty),
+            builder: (_) => ResultPage(
+              noDifferences: results.isEmpty,
+              detections: results,
+              leftNorm: _leftNorm,
+              rightNorm: _rightNorm,
+              left: widget.left,
+              right: widget.right,
+            ),
           ),
         )
         .then((reset) {
