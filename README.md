@@ -70,3 +70,4 @@ Diffapp Ver1.2 — Flutter app (iOS/Android) for kids to spot differences betwee
 - Specs: `prompt_spec.md`, `spec.md`
 - Tasks: `todo.md`
 - Contributor guide: `AGENTS.md`
+- Emulator verification log: `diffapp/docs/emulator_verification_log.md`
