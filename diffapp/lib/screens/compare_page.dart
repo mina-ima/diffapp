@@ -9,7 +9,9 @@ import 'package:diffapp/settings.dart';
 import 'package:diffapp/screens/settings_page.dart';
 import 'package:diffapp/screens/result_page.dart';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:diffapp/widgets/cropped_image.dart';
+import 'package:diffapp/cnn_detection.dart';
 
 class ComparePage extends StatefulWidget {
   final SelectedImage left;
@@ -50,7 +52,7 @@ class _ComparePageState extends State<ComparePage>
   late final Animation<double> _scale;
   bool _showCroppedPreviews = false;
 
-  void _startDetection(BuildContext context) {
+  Future<void> _startDetection(BuildContext context) async {
     // 効果音
     if (widget.enableSound) {
       Sfx.instance.play('start');
@@ -84,9 +86,16 @@ class _ComparePageState extends State<ComparePage>
       return;
     }
 
-    // いまはダミー検出：常にゼロ件とする
-    final List<IntRect> results = <IntRect>[];
-    // 結果メッセージ（従来の挙動を維持）
+    // 検出処理
+    List<IntRect> results = <IntRect>[];
+    try {
+      results = await _runDetection();
+    } catch (e, st) {
+      AppLog.instance.record(e, st, tag: 'detection');
+      // 失敗時はゼロ件として扱う
+      results = <IntRect>[];
+    }
+    // 結果メッセージ
     if (results.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ちがいは みつかりませんでした')),
@@ -108,6 +117,78 @@ class _ComparePageState extends State<ComparePage>
         _reset();
       }
     });
+  }
+
+  Future<List<IntRect>> _runDetection() async {
+    // 画像からピクセル取得（bytes優先、なければ path）
+    final imgL = await _decodeAndScaleTo(_getBytesOrNull(widget.left), widget.left.path);
+    final imgR = await _decodeAndScaleTo(_getBytesOrNull(widget.right), widget.right.path);
+    if (imgL == null || imgR == null) {
+      return <IntRect>[];
+    }
+    // 同一サイズに揃える（64x64固定）
+    const targetW = 64;
+    const targetH = 64;
+    final grayL = await _toGrayscale(imgL, targetW, targetH);
+    final grayR = await _toGrayscale(imgR, targetW, targetH);
+
+    // SSIM → 差分正規化 → 二値化 → 連結成分 → NMS（モックCNNでスコア）
+    final ssim = computeSsimMapUint8(grayL, grayR, targetW, targetH, windowRadius: 0);
+    final diff = ssim.map((v) => 1.0 - v).toList();
+    final diffN = normalizeToUnit(diff);
+
+    final detector = FfiCnnDetector();
+    await detector.load(Uint8List(0)); // モデル無しでもロード済み扱い
+    final detections = detector.detectFromDiffMap(
+      diffN,
+      targetW,
+      targetH,
+      settings: Settings.initial(),
+      maxOutputs: 20,
+      iouThreshold: 0.3,
+    );
+    return detections.map((d) => d.box).toList();
+  }
+
+  Uint8List? _getBytesOrNull(SelectedImage img) => img.bytes;
+
+  Future<ui.Image?> _decodeAndScaleTo(Uint8List? bytes, String? path) async {
+    try {
+      Uint8List? data = bytes;
+      if (data == null && path != null) {
+        data = await File(path).readAsBytes();
+      }
+      if (data == null) return null;
+      final codec = await ui.instantiateImageCodec(data);
+      final fi = await codec.getNextFrame();
+      return fi.image;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<int>> _toGrayscale(ui.Image image, int outW, int outH) async {
+    // draw scaled to outW x outH then read pixels
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final srcSize = Size(image.width.toDouble(), image.height.toDouble());
+    final dstRect = Rect.fromLTWH(0, 0, outW.toDouble(), outH.toDouble());
+    final paint = Paint();
+    canvas.drawImageRect(image, Offset.zero & srcSize, dstRect, paint);
+    final picture = recorder.endRecording();
+    final scaled = await picture.toImage(outW, outH);
+    final byteData = await scaled.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final rgba = byteData!.buffer.asUint8List();
+    final gray = List<int>.filled(outW * outH, 0);
+    for (var i = 0, p = 0; i < gray.length; i++, p += 4) {
+      final r = rgba[p];
+      final g = rgba[p + 1];
+      final b = rgba[p + 2];
+      // simple luma
+      final y = (0.299 * r + 0.587 * g + 0.114 * b).round();
+      gray[i] = y.clamp(0, 255);
+    }
+    return gray;
   }
 
   void _reset() {
