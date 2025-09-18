@@ -40,10 +40,36 @@ class ResultPage extends StatelessWidget {
                 child: Text('ちがいは みつかりませんでした'),
               )
             else
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text('検出数: ${detections.length}'),
-              ),
+              Builder(builder: (context) {
+                // 表示中件数（クロップ内）を算出
+                const srcW = 64;
+                const srcH = 64;
+                final toNormX = leftNorm.width / srcW;
+                final toNormY = leftNorm.height / srcH;
+                final viewport = selectedLeftRect ??
+                    IntRect(left: 0, top: 0, width: leftNorm.width, height: leftNorm.height);
+                bool intersects(IntRect a, IntRect b) {
+                  final ax2 = a.left + a.width;
+                  final ay2 = a.top + a.height;
+                  final bx2 = b.left + b.width;
+                  final by2 = b.top + b.height;
+                  return !(ax2 <= b.left || bx2 <= a.left || ay2 <= b.top || by2 <= a.top);
+                }
+                int visible = 0;
+                for (final d in detections) {
+                  final n = IntRect(
+                    left: (d.left * toNormX).round(),
+                    top: (d.top * toNormY).round(),
+                    width: (d.width * toNormX).round(),
+                    height: (d.height * toNormY).round(),
+                  );
+                  if (intersects(n, viewport)) visible++;
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text('検出数: ${detections.length}（表示中: $visible）'),
+                );
+              }),
             // 左画像のみ表示（けんさせってい画面と同じ基準のプレビュー）
             Expanded(
               child: _DetectionOverlay(
@@ -141,10 +167,10 @@ class _DetectionOverlay extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   child: Transform(
                     alignment: Alignment.topLeft,
-                    // CroppedImage と同じ表示：全体を s 倍し、-crop を平行移動
+                    // CroppedImage と同じ表示：-crop*scale を平行移動し、その後に拡大
                     transform: Matrix4.identity()
-                      ..scale(s, s)
-                      ..translate(-cropLeft.toDouble(), -cropTop.toDouble()),
+                      ..translate(-cropLeft.toDouble() * s, -cropTop.toDouble() * s)
+                      ..scale(s, s),
                     child: SizedBox(
                       width: norm.width.toDouble(),
                       height: norm.height.toDouble(),
