@@ -135,6 +135,9 @@
 - [x] 初期値：全 ON、普通精度で表示
 - [x] 設定を保持（セッション中のみ・画面間受け渡し）
 - [x] 効果音 ON/OFF トグルを追加（検出開始/再比較の再生可否に反映）
+- [x] 比較画面の検出処理に Settings を反映（precision→しきい値、カテゴリ→出力ラベル）
+  - テスト: `test/compare_passes_settings_to_detector_test.dart`（Compare→Detector への受け渡し）
+  - テスト: `test/cnn_detector_precision_threshold_test.dart`（precision による閾値の違い）
 
 ---
 
