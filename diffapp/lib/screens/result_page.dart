@@ -167,9 +167,9 @@ class _DetectionOverlay extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   child: Transform(
                     alignment: Alignment.topLeft,
-                    // CroppedImage と同じ表示：-crop*scale を平行移動し、その後に拡大
+                    // CroppedImage と同じ表示：先に -crop を平行移動し、その後に拡大
                     transform: Matrix4.identity()
-                      ..translate(-cropLeft.toDouble() * s, -cropTop.toDouble() * s)
+                      ..translate(-cropLeft.toDouble(), -cropTop.toDouble())
                       ..scale(s, s),
                     child: SizedBox(
                       width: norm.width.toDouble(),
