@@ -184,6 +184,15 @@
   - [x] 範囲指定プレビューのスケール整合性（矩形に一致するビューポート＋オフセットがスケール追従）をウィジェットテストで担保（`test/crop_preview_translation_scaled_test.dart`）
   - [x] 極端な縦長/横長の矩形でもプレビューが表示される回帰テストを追加（`test/crop_preview_extreme_aspect_test.dart`）
   - [x] `scaleRectBetweenSpaces` の丸めで最小1pxを保証するユニットテストを追加（`test/image_pipeline_test.dart`）
+
+---
+
+## 9. 手動検証（エミュレーター）
+
+- [x] 範囲指定プレビューの動作確認（指定範囲のみが「けんさせってい」に切り出し表示）
+  - 実施日: 2025-09-18
+  - 実施者: 開発者（操作）、エージェント（シミュレーター起動・アプリ再起動）
+  - ログ: `diffapp/docs/emulator_verification_log.md` に記載
 - [x] パフォーマンステスト
   - [x] 1280px 入力で 5 秒以内
   - [x] 低メモリ端末での安定性確認（計画ドキュメントと簡易検証の方針を整備）
