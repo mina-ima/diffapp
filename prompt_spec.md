@@ -71,6 +71,7 @@ AIモデル TensorFlow Lite（CNN） 形・文字認識補強
 • 効果音（ON/OFF可）- 現状: 設定でON/OFF切替可。検出開始/再比較で効果音を再生
 • 「スクショをとろう！」案内
 • 再比較ボタン（選択範囲リセット＋案内SnackBar）
+  - 実装メモ: 直前のSnackBarをclearSnackBars()で明示的に消去し、次フレームでshowSnackBar()することで競合を回避
 
 ⸻
 
