@@ -65,13 +65,17 @@ AIモデル TensorFlow Lite（CNN） 形・文字認識補強
 最大検出数 20件 上位スコア順に制限
 補足 前処理 SSIMスコアマップを正規化→二値化→連結成分解析で矩形候補抽出（純Dart実装）
 
+参考ドキュメント
+- `diffapp/docs/detection_pipeline_plan.md`（検査パイプライン計画。1280幅、5秒以内、SSIM→しきい値（二値化）→連結成分→NMS→TFLite 補強の段階実装）
+
 2.7 結果表示
 • 左右画像を並列表示
 • 赤枠ハイライト＋アニメーション（中央にポヨン演出）
 • 効果音（ON/OFF可）- 現状: 設定でON/OFF切替可。検出開始/再比較で効果音を再生
 • 「スクショをとろう！」案内
 • 再比較ボタン（選択範囲リセット＋案内SnackBar）
-  - 実装メモ: 直前のSnackBarをclearSnackBars()で明示的に消去し、次フレームでshowSnackBar()することで競合を回避
+
+- 実装メモ: 直前のSnackBarをclearSnackBars()で明示的に消去し、次フレームでshowSnackBar()することで競合を回避
 
 ⸻
 

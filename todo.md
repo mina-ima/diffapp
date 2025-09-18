@@ -86,6 +86,7 @@
   - [x] SSIM スコアマップ生成
   - [x] スコアマップを正規化
   - [x] 二値化 & 連結成分解析
+- [x] 検査パイプライン計画ドキュメントを追加（`diffapp/docs/detection_pipeline_plan.md`）。Web テストで主要項目を検証（`src/detection_pipeline_plan_doc.test.ts`）
 - [x] CNN 推論
   - [x] モデルをロード
   - [x] 特徴抽出を行う
