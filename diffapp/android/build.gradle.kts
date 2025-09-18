@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.compile.JavaCompile
+
 allprojects {
     repositories {
         google()
@@ -17,6 +19,14 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+// Java 8 の非推奨オプション警告が赤字で出るのを抑制する
+subprojects {
+    tasks.withType(JavaCompile::class.java).configureEach {
+        // -Xlint:options の警告だけ無効化
+        options.compilerArgs.add("-Xlint:-options")
+    }
 }
 
 tasks.register<Delete>("clean") {

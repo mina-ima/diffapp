@@ -8,7 +8,8 @@ plugins {
 android {
     namespace = "dev.minamidenshiimanaka.diffapp"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // 明示的に必要な NDK バージョンを指定（プラグインの要件に合わせる）
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -29,7 +30,8 @@ android {
         // ★ Apple Silicon のエミュ用に ABI を arm64 のみに限定（ビルド時間短縮・トラブル回避）
         ndk {
             abiFilters.clear()
-            abiFilters += listOf("arm64-v8a")
+            // テスト要件に合わせて arm64-v8a / armeabi-v7a をサポート
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
 
         // ★ CMake のフラグ（空でOK。必要になったら追記）
@@ -53,6 +55,13 @@ android {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
         }
+    }
+
+    // ★ jniLibs に配置している OpenCV のスタブ .so は strip 対象から除外
+    //   （NDK の llvm-strip が "not a valid object file" を出すため）
+    packagingOptions {
+        doNotStrip("*/arm64-v8a/*.so")
+        doNotStrip("*/armeabi-v7a/*.so")
     }
 }
 

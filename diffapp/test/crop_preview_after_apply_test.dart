@@ -30,7 +30,7 @@ void main() {
     await tester.tap(find.text('範囲指定'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
-    await tester.tap(find.text('同座標適用（右へ）'));
+    await tester.tap(find.byKey(const Key('apply-same-rect-right')));
     await tester.pump();
 
     // 切り出しプレビューのキーが両側に現れる

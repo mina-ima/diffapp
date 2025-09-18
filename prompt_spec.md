@@ -69,18 +69,26 @@ AIモデル TensorFlow Lite（CNN） 形・文字認識補強
 
 - `diffapp/docs/detection_pipeline_plan.md`（検査パイプライン計画。1280幅、5秒以内、SSIM→しきい値（二値化）→連結成分→NMS→TFLite 補強の段階実装）
 
-  2.7 結果表示
-  • 左右画像を並列表示
-  • 赤枠ハイライト＋アニメーション（中央にポヨン演出）
-  • 効果音（ON/OFF可）- 現状: 設定でON/OFF切替可。検出開始/再比較で効果音を再生
-  • 「スクショをとろう！」案内
-  • 再比較ボタン（選択範囲リセット＋案内SnackBar）
-  • 設定反映（検出処理）
-    - Home→Compare 遷移時に Settings を引き渡す
-    - precision をしきい値に反映、カテゴリ（色/形/場所/大きさ/文字）は出力ラベルに反映
-    - NMS/最大件数も Settings の方針に基づき制御（現状: 最大20件固定、将来拡張）
+開発補助スクリプト
+
+- ルート `package.json` の Android 補助コマンドは FVM の `flutter` を優先
+  - `pnpm android:doctor` → `cd diffapp && fvm flutter doctor -v`
+  - `pnpm android:emulators` → `fvm flutter emulators && fvm flutter devices`
+
+    2.7 結果表示
+    • 左右画像を並列表示
+    • 赤枠ハイライト＋アニメーション（中央にポヨン演出）
+    • 効果音（ON/OFF可）- 現状: 設定でON/OFF切替可。検出開始/再比較で効果音を再生
+    • 「スクショをとろう！」案内
+    • 再比較ボタン（選択範囲リセット＋案内SnackBar）
+    • 設定反映（検出処理）
+
+  - Home→Compare 遷移時に Settings を引き渡す
+  - precision をしきい値に反映、カテゴリ（色/形/場所/大きさ/文字）は出力ラベルに反映
+  - NMS/最大件数も Settings の方針に基づき制御（現状: 最大20件固定、将来拡張）
 
 実装メモ
+
 - SnackBar 競合回避: 直前のSnackBarをclearSnackBars()で消去し、次フレームでshowSnackBar()
 
 ⸻

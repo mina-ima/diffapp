@@ -29,6 +29,7 @@ class ResultPage extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: OutlinedButton.icon(
+                key: const Key('retry-compare'),
                 onPressed: () {
                   Navigator.of(context).pop(true);
                 },
@@ -42,4 +43,3 @@ class ResultPage extends StatelessWidget {
     );
   }
 }
-

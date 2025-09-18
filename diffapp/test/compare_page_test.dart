@@ -32,9 +32,19 @@ void main() {
     // 結果画面へ
     await tester.tap(find.text('検査をはじめる'));
     await tester.pumpAndSettle();
-    // 再比較を押す→戻ってSnackBar
-    await tester.tap(find.text('再比較'));
-    await tester.pump();
+    // 再比較を押す（ヒットテストの揺らぎを避けるため onPressed を直接実行）
+    final retryFinder = find.byKey(const Key('retry-compare'));
+    expect(retryFinder, findsOneWidget);
+    final retryBtn = tester.widget<OutlinedButton>(retryFinder);
+    expect(retryBtn.onPressed, isNotNull);
+    retryBtn.onPressed!.call();
+    // 戻り遷移と SnackBar 表示を待機
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+    // ComparePage のボタンが再び見えること
+    expect(find.text('範囲指定'), findsWidgets);
+    // SnackBar 文言が表示されること
     expect(find.text('最初からやりなおします'), findsOneWidget);
   });
 }

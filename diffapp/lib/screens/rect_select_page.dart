@@ -84,6 +84,7 @@ class _RectSelectPageState extends State<RectSelectPage> {
             Expanded(child: _editMode ? _buildEditable() : _buildZoomable()),
             const SizedBox(height: 12),
             OutlinedButton.icon(
+              key: const Key('apply-same-rect-right'),
               onPressed: _saveAndApplyRight,
               icon: const Icon(Icons.copy_all),
               label: const Text('同座標適用（右へ）'),
@@ -149,7 +150,7 @@ class _RectSelectPageState extends State<RectSelectPage> {
         borderRadius: BorderRadius.circular(6),
         child: SizedBox.expand(
           key: const Key('rect-select-image'),
-          child: Image.memory(bytes, fit: BoxFit.cover),
+          child: Image.memory(bytes, fit: BoxFit.fill),
         ),
       );
     }
@@ -158,7 +159,7 @@ class _RectSelectPageState extends State<RectSelectPage> {
         borderRadius: BorderRadius.circular(6),
         child: SizedBox.expand(
           key: const Key('rect-select-image'),
-          child: Image.file(File(path), fit: BoxFit.cover),
+          child: Image.file(File(path), fit: BoxFit.fill),
         ),
       );
     }

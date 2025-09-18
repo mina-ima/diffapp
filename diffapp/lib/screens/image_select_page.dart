@@ -1,10 +1,11 @@
 import 'dart:async';
-import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../permissions.dart';
+import 'package:diffapp/image_metadata.dart';
+import 'dart:ui' as ui;
 
 class SelectedImage {
   final String label;
@@ -34,74 +35,18 @@ class ImageSelectPage extends StatelessWidget {
     Navigator.of(context).pop(img);
   }
 
-  // 画像ヘッダーから軽量に寸法を取得（PNG / JPEG のみ対応、その他はフォールバック）
-  Future<(int,int)> _readImageSizeFast(String path) async {
-    final file = File(path);
-    final raf = await file.open();
+  // 寸法取得はユーティリティに集約（EXIF考慮）。失敗時はフルデコードにフォールバック。
+  Future<(int, int)> _readImageSizeFast(String path) async {
     try {
-      // Read first 32 bytes
-      final sig = await raf.read(32);
-      // PNG signature
-      if (sig.length >= 24 &&
-          sig[0] == 0x89 &&
-          sig[1] == 0x50 && // P
-          sig[2] == 0x4E && // N
-          sig[3] == 0x47 && // G
-          sig[4] == 0x0D &&
-          sig[5] == 0x0A &&
-          sig[6] == 0x1A &&
-          sig[7] == 0x0A) {
-        // IHDR: width/height at offset 16..23, big-endian
-        int w = (sig[16] << 24) | (sig[17] << 16) | (sig[18] << 8) | sig[19];
-        int h = (sig[20] << 24) | (sig[21] << 16) | (sig[22] << 8) | sig[23];
-        if (w > 0 && h > 0) return (w, h);
-      }
-      // JPEG
-      if (sig.length >= 2 && sig[0] == 0xFF && sig[1] == 0xD8) {
-        // Iterate segments
-        await raf.setPosition(2);
-        for (int i = 0; i < 1000; i++) {
-          // Find marker 0xFF
-          int byte = (await raf.readByte());
-          while (byte == 0xFF) {
-            byte = (await raf.readByte());
-          }
-          final marker = byte;
-          // Read segment length
-          final lenHi = await raf.readByte();
-          final lenLo = await raf.readByte();
-          final segLen = (lenHi << 8) | lenLo;
-          if (segLen < 2) break;
-          // SOF markers that contain dimensions
-          const sofMarkers = [
-            0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF
-          ];
-          if (sofMarkers.contains(marker)) {
-            // segment: [len(2)] [precision(1)] [height(2)] [width(2)] ...
-            final data = await raf.read(5);
-            if (data.length >= 5) {
-              final h = (data[1] << 8) | data[2];
-              final w = (data[3] << 8) | data[4];
-              if (w > 0 && h > 0) return (w, h);
-            }
-            break;
-          } else {
-            // Skip the rest of this segment (already consumed 2 for length)
-            await raf.setPosition((await raf.position()) + segLen - 2);
-          }
-        }
-      }
+      return await readImageSizeFastConsideringExif(path);
     } catch (_) {
-      // ignore and fallback
-    } finally {
-      await raf.close();
+      // フォールバック: 互換性重視で dart:ui でのデコード
+      final bytes = await File(path).readAsBytes();
+      final completer = Completer<ui.Image>();
+      ui.decodeImageFromList(bytes, (img) => completer.complete(img));
+      final image = await completer.future;
+      return (image.width, image.height);
     }
-    // Fallback: decode fast path
-    final bytes = await File(path).readAsBytes();
-    final completer = Completer<ui.Image>();
-    ui.decodeImageFromList(bytes, (img) => completer.complete(img));
-    final image = await completer.future;
-    return (image.width, image.height);
   }
 
   Future<void> _handleDenied(BuildContext context,
@@ -155,8 +100,11 @@ class ImageSelectPage extends StatelessWidget {
         return;
       }
 
-      // 可能な限り軽量に寸法だけ取得（ヘッダー解析）。
+      // 可能な限り軽量に寸法だけ取得（ヘッダー解析、EXIF回転を考慮）。
       final dims = await _readImageSizeFast(picked.path);
+      // プレビューはファイルパス依存だと一部端末/プロバイダで表示できない場合があるため、
+      // 確実に表示できるように bytes も保持しておく。
+      final previewBytes = await picked.readAsBytes();
 
       if (!context.mounted) return;
       final fileName = picked.name.isNotEmpty ? picked.name : '選択画像';
@@ -166,7 +114,9 @@ class ImageSelectPage extends StatelessWidget {
           label: '$fileName (${dims.$1}x${dims.$2})',
           width: dims.$1,
           height: dims.$2,
-          // プレビューはファイルを直接表示して描画負荷を軽減
+          // プレビューはメモリ画像を優先（File パスに依存しない）
+          bytes: previewBytes,
+          // 後工程での参照用にパスも保持
           path: picked.path,
         ),
       );

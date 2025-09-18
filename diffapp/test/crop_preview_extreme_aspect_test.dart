@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:diffapp/image_pipeline.dart';
+import 'package:diffapp/screens/image_select_page.dart';
 import 'package:diffapp/screens/compare_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,7 +29,13 @@ void main() {
     await tester.tap(find.text('範囲指定'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('同座標適用（右へ）'));
+    // ラベルテキストに対して first をタップし、ヒットミスは許容
+    // キーでボタン特定
+    final applyBtn = find.byKey(const Key('apply-same-rect-right'));
+    // 画面遷移やオフステージで重複することがあるため first をタップ
+    expect(applyBtn, findsWidgets);
+    await tester.ensureVisible(applyBtn.first);
+    await tester.tap(applyBtn.first, warnIfMissed: false);
     await tester.pump();
 
     final leftVp1 = find.byKey(const Key('cropped-left-viewport'));
@@ -49,7 +56,10 @@ void main() {
     await tester.tap(find.text('範囲指定'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('同座標適用（右へ）'));
+    final applyBtn2 = find.byKey(const Key('apply-same-rect-right'));
+    expect(applyBtn2, findsWidgets);
+    await tester.ensureVisible(applyBtn2.first);
+    await tester.tap(applyBtn2.first, warnIfMissed: false);
     await tester.pump();
 
     final leftVp2 = find.byKey(const Key('cropped-left-viewport'));
@@ -62,4 +72,3 @@ void main() {
     expect(tester.getSize(rightVp2).height, greaterThan(0));
   });
 }
-

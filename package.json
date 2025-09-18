@@ -9,8 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "android": "bash scripts/run_android.sh",
-    "android:doctor": "cd diffapp && flutter doctor -v",
-    "android:emulators": "flutter emulators && flutter devices"
+    "android:doctor": "cd diffapp && fvm flutter doctor -v",
+    "android:emulators": "fvm flutter emulators && fvm flutter devices"
   },
   "devDependencies": {
     "jsdom": "^24.1.1",
