@@ -9,6 +9,7 @@ import 'package:diffapp/settings.dart';
 import 'package:diffapp/screens/settings_page.dart';
 import 'package:diffapp/screens/result_page.dart';
 import 'dart:io';
+import 'package:diffapp/widgets/cropped_image.dart';
 
 class ComparePage extends StatefulWidget {
   final SelectedImage left;
@@ -117,9 +118,15 @@ class _ComparePageState extends State<ComparePage>
     if (widget.enableSound) {
       Sfx.instance.play('reset');
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('最初からやりなおします')),
-    );
+    final messenger = ScaffoldMessenger.of(context);
+    // 直前に表示していたメッセージを確実に消してから、フレーム後に新しいSnackBarを出す。
+    messenger.clearSnackBars();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('最初からやりなおします')),
+      );
+    });
   }
 
   Future<void> _selectRect() async {
@@ -305,7 +312,7 @@ class _ComparePageState extends State<ComparePage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (_showCroppedPreviews && rect != null)
+                if (rect != null)
                   _buildCroppedPreview(
                     isLeft: isLeft,
                     bytes: bytes,
@@ -348,7 +355,7 @@ class _ComparePageState extends State<ComparePage>
             ),
           ),
           // 赤枠ハイライト（ポヨンアニメ）
-          if (!_showCroppedPreviews)
+          if (rect == null)
             Positioned.fill(
               child: IgnorePointer(
                 child: Center(
@@ -393,65 +400,18 @@ class _ComparePageState extends State<ComparePage>
       return const Icon(Icons.image, size: 64, color: Colors.grey);
     }
 
-    // レイアウトに応じてスケールを決め、選択矩形の座標と一致するように
-    // ビューポートサイズとオフセットを計算する。
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const double preferredViewportHeight = 160.0;
-        // まず高さ基準のスケールを試算（矩形の高さがちょうど 160 になるスケール）
-        double s = preferredViewportHeight / rect.height;
-        double viewportW = rect.width * s;
-        double viewportH = rect.height * s;
-        // 横幅がはみ出す場合は、横幅基準にスケールを調整
-        if (viewportW > constraints.maxWidth) {
-          s = constraints.maxWidth / rect.width;
-          viewportW = rect.width * s;
-          viewportH = rect.height * s;
-        }
-
-        final renderImageW = dims.width * s;
-        final renderImageH = dims.height * s;
-        final dx = -rect.left * s;
-        final dy = -rect.top * s;
-
-        final Widget imageWidget = bytes != null
-            ? Image.memory(
-                bytes,
-                width: renderImageW,
-                height: renderImageH,
-                fit: BoxFit.cover,
-              )
-            : Image.file(
-                File(path!),
-                width: renderImageW,
-                height: renderImageH,
-                fit: BoxFit.cover,
-              );
-
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: SizedBox(
-            key: Key(isLeft
-                ? 'cropped-left-viewport'
-                : 'cropped-right-viewport'),
-            width: viewportW,
-            height: viewportH,
-            child: ClipRect(
-              child: Stack(
-                children: [
-                  Transform.translate(
-                    offset: Offset(dx.toDouble(), dy.toDouble()),
-                    child: KeyedSubtree(
-                      key: Key(isLeft ? 'cropped-left' : 'cropped-right'),
-                      child: imageWidget,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+    // 実画像ピクセル空間での厳密クロップを使う。
+    // 端末・デコーダ差によるアラインメントの差異を排除するため drawImageRect を採用。
+    return CroppedImage(
+      bytes: bytes,
+      path: path,
+      originalWidth: isLeft ? widget.left.width : widget.right.width,
+      originalHeight: isLeft ? widget.left.height : widget.right.height,
+      normalizedWidth: dims.width,
+      normalizedHeight: dims.height,
+      rect: rect,
+      viewportKey: Key(isLeft ? 'cropped-left-viewport' : 'cropped-right-viewport'),
+      imageKey: Key(isLeft ? 'cropped-left' : 'cropped-right'),
     );
   }
 }
