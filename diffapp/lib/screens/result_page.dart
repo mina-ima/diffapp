@@ -145,7 +145,15 @@ class _DetectionOverlay extends StatelessWidget {
         } else if (image.path != null) {
           imageChild = Image.file(File(image.path!), fit: BoxFit.fill);
         } else {
-          imageChild = const Icon(Icons.image, size: 64, color: Colors.grey);
+          // プレビュー用の画像データが無い場合でも、表示領域を確保して視認できるようにする
+          imageChild = Container(
+            color: Colors.black12,
+            alignment: Alignment.center,
+            child: const Text(
+              'プレビューなし',
+              style: TextStyle(color: Colors.black54),
+            ),
+          );
         }
 
         // 64x64 → 正規化寸法 → 表示スケールs（さらにクロップ原点を原点に）
