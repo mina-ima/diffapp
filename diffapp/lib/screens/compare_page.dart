@@ -139,11 +139,50 @@ class _ComparePageState extends State<ComparePage>
     if (imgL == null || imgR == null) {
       return <IntRect>[];
     }
-    // 同一サイズに揃える（64x64固定）
+    // 同一サイズに揃える（64x64固定）。選択範囲があればその矩形のみを切り出して解析。
     const targetW = 64;
     const targetH = 64;
-    final grayL = await _toGrayscale(imgL, targetW, targetH);
-    final grayR = await _toGrayscale(imgR, targetW, targetH);
+
+    Rect? leftCropSrc;
+    Rect? rightCropSrc;
+    double leftOffsetX = 0;
+    double leftOffsetY = 0;
+    if (_leftRect != null) {
+      // 左: 正規化空間(_leftNorm)での矩形を実画像ピクセル空間へ変換
+      final sxL = imgL.width / _leftNorm.width;
+      final syL = imgL.height / _leftNorm.height;
+      leftCropSrc = Rect.fromLTWH(
+        _leftRect!.left * sxL,
+        _leftRect!.top * syL,
+        _leftRect!.width * sxL,
+        _leftRect!.height * syL,
+      );
+
+      // 右: 右の正規化空間へマッピング（_rightRect が未設定なら変換して得る）
+      final mappedRight = _rightRect ?? scaleRectBetweenSpaces(
+        _leftRect!,
+        _leftNorm.width,
+        _leftNorm.height,
+        _rightNorm.width,
+        _rightNorm.height,
+      );
+      final sxR = imgR.width / _rightNorm.width;
+      final syR = imgR.height / _rightNorm.height;
+      rightCropSrc = Rect.fromLTWH(
+        mappedRight.left * sxR,
+        mappedRight.top * syR,
+        mappedRight.width * sxR,
+        mappedRight.height * syR,
+      );
+
+      // 検出ボックスは 64x64 のフル空間に対する座標で返すため、
+      // クロップ領域の原点オフセット（64系）を加算して戻す。
+      leftOffsetX = _leftRect!.left * (targetW / _leftNorm.width);
+      leftOffsetY = _leftRect!.top * (targetH / _leftNorm.height);
+    }
+
+    final grayL = await _toGrayscale(imgL, targetW, targetH, srcRect: leftCropSrc);
+    final grayR = await _toGrayscale(imgR, targetW, targetH, srcRect: rightCropSrc);
 
     // SSIM → 差分正規化 → 二値化 → 連結成分 → NMS（モックCNNでスコア）
     final ssim = computeSsimMapUint8(grayL, grayR, targetW, targetH, windowRadius: 0);
@@ -160,7 +199,19 @@ class _ComparePageState extends State<ComparePage>
       maxOutputs: 20,
       iouThreshold: 0.3,
     );
-    return detections.map((d) => d.box).toList();
+    // クロップを適用した場合は、ボックスの原点をフル画像の 64x64 座標へ戻す
+    final boxes = detections.map((d) => d.box).toList();
+    if (_leftRect != null) {
+      return boxes
+          .map((d) => IntRect(
+                left: (d.left + leftOffsetX).round(),
+                top: (d.top + leftOffsetY).round(),
+                width: d.width,
+                height: d.height,
+              ))
+          .toList();
+    }
+    return boxes;
   }
 
   Uint8List? _getBytesOrNull(SelectedImage img) => img.bytes;
@@ -180,14 +231,15 @@ class _ComparePageState extends State<ComparePage>
     }
   }
 
-  Future<List<int>> _toGrayscale(ui.Image image, int outW, int outH) async {
+  Future<List<int>> _toGrayscale(ui.Image image, int outW, int outH, {Rect? srcRect}) async {
     // draw scaled to outW x outH then read pixels
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     final srcSize = Size(image.width.toDouble(), image.height.toDouble());
     final dstRect = Rect.fromLTWH(0, 0, outW.toDouble(), outH.toDouble());
     final paint = Paint();
-    canvas.drawImageRect(image, Offset.zero & srcSize, dstRect, paint);
+    final src = srcRect ?? (Offset.zero & srcSize);
+    canvas.drawImageRect(image, src, dstRect, paint);
     final picture = recorder.endRecording();
     final scaled = await picture.toImage(outW, outH);
     final byteData = await scaled.toByteData(format: ui.ImageByteFormat.rawRgba);
