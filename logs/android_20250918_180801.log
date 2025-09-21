@@ -1,0 +1,36 @@
+09-18 18:07:50.283 I/ResourceExtractor( 4633): Extracted baseline resource assets/flutter_assets/kernel_blob.bin
+09-18 18:07:50.285 I/ResourceExtractor( 4633): Extracted baseline resource assets/flutter_assets/vm_snapshot_data
+09-18 18:07:50.318 I/ResourceExtractor( 4633): Extracted baseline resource assets/flutter_assets/isolate_snapshot_data
+09-18 18:07:50.453 I/flutter ( 4633): The Dart VM service is listening on http://127.0.0.1:38065/CzjGTTjaouw=/
+09-18 18:08:11.473 I/flutter ( 4633): [Diffapp][select] name=image (1).png size=1512x1156 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/4f807f8c-600e-4151-8daf-375adb75d043/image (1).png
+09-18 18:08:18.083 I/flutter ( 4633): [Diffapp][select] name=image (2).png size=1510x1148 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/08f8100f-c709-48ab-bb05-01c110a36bc6/image (2).png
+09-18 18:08:19.449 I/flutter ( 4633): [Diffapp][init] leftInput=1512x1156 rightInput=1510x1148
+09-18 18:08:19.449 I/flutter ( 4633): [Diffapp][init] leftNorm=1280x979 rightNorm=1280x973
+09-18 18:08:31.458 I/flutter ( 4633): [Diffapp][rect] left=IntRect(l:4, t:419, w:1227, h:316) -> right=IntRect(l:4, t:416, w:1227, h:314) (LDimensions(width: 1280, height: 979) RDimensions(width: 1280, height: 973))
+09-18 18:14:37.975 I/ResourceExtractor( 5035): Extracted baseline resource assets/flutter_assets/kernel_blob.bin
+09-18 18:14:37.975 I/ResourceExtractor( 5035): Extracted baseline resource assets/flutter_assets/vm_snapshot_data
+09-18 18:14:38.005 I/ResourceExtractor( 5035): Extracted baseline resource assets/flutter_assets/isolate_snapshot_data
+09-18 18:14:38.060 I/flutter ( 5035): The Dart VM service is listening on http://127.0.0.1:33935/sU62RS1tmho=/
+09-18 18:14:51.256 I/flutter ( 5035): [Diffapp][select] name=image (1).png size=1512x1156 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/025ec3d2-1895-4359-9704-6ead4ba08ce9/image (1).png
+09-18 18:14:57.981 I/flutter ( 5035): [Diffapp][select] name=image (2).png size=1510x1148 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/9f4558a6-0587-431a-888e-7ee7d64440c3/image (2).png
+09-18 18:15:00.553 I/flutter ( 5035): [Diffapp][init] leftInput=1512x1156 rightInput=1510x1148
+09-18 18:15:00.553 I/flutter ( 5035): [Diffapp][init] leftNorm=1280x979 rightNorm=1280x973
+09-18 18:15:13.356 I/flutter ( 5035): [Diffapp][rect] left=IntRect(l:44, t:471, w:1081, h:441) -> right=IntRect(l:44, t:468, w:1081, h:438) (LDimensions(width: 1280, height: 979) RDimensions(width: 1280, height: 973))
+09-18 18:18:28.432 I/ResourceExtractor( 5290): Extracted baseline resource assets/flutter_assets/kernel_blob.bin
+09-18 18:18:28.433 I/ResourceExtractor( 5290): Extracted baseline resource assets/flutter_assets/vm_snapshot_data
+09-18 18:18:28.464 I/ResourceExtractor( 5290): Extracted baseline resource assets/flutter_assets/isolate_snapshot_data
+09-18 18:18:28.565 I/flutter ( 5290): The Dart VM service is listening on http://127.0.0.1:40753/kBsVPL3pN8o=/
+09-18 18:18:40.071 I/flutter ( 5290): [Diffapp][select] name=image (1).png size=1512x1156 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/5ec1d7c1-1314-4604-819a-c63a6797b6ae/image (1).png
+09-18 18:18:46.410 I/flutter ( 5290): [Diffapp][select] name=image (2).png size=1510x1148 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/25faf1fc-4b75-4e65-b613-7c07d3680ad8/image (2).png
+09-18 18:18:47.984 I/flutter ( 5290): [Diffapp][init] leftInput=1512x1156 rightInput=1510x1148
+09-18 18:18:47.984 I/flutter ( 5290): [Diffapp][init] leftNorm=1280x979 rightNorm=1280x973
+09-18 18:18:56.038 I/flutter ( 5290): [Diffapp][rect] left=IntRect(l:100, t:80, w:843, h:817) -> right=IntRect(l:100, t:80, w:843, h:812) (LDimensions(width: 1280, height: 979) RDimensions(width: 1280, height: 973))
+09-18 18:20:28.721 I/ResourceExtractor( 5488): Extracted baseline resource assets/flutter_assets/kernel_blob.bin
+09-18 18:20:28.722 I/ResourceExtractor( 5488): Extracted baseline resource assets/flutter_assets/vm_snapshot_data
+09-18 18:20:28.753 I/ResourceExtractor( 5488): Extracted baseline resource assets/flutter_assets/isolate_snapshot_data
+09-18 18:20:28.810 I/flutter ( 5488): The Dart VM service is listening on http://127.0.0.1:45845/R2S1gCvKkcw=/
+09-18 18:21:20.351 I/flutter ( 5488): [Diffapp][select] name=image (1).png size=1512x1156 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/ab931897-30b6-42e8-a30b-59f9e7ac9d65/image (1).png
+09-18 18:21:26.814 I/flutter ( 5488): [Diffapp][select] name=image (2).png size=1510x1148 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/682eccc1-95fd-4963-9155-66ec8a647990/image (2).png
+09-18 18:21:28.049 I/flutter ( 5488): [Diffapp][init] leftInput=1512x1156 rightInput=1510x1148
+09-18 18:21:28.049 I/flutter ( 5488): [Diffapp][init] leftNorm=1280x979 rightNorm=1280x973
+09-18 18:21:35.471 I/flutter ( 5488): [Diffapp][rect] left=IntRect(l:100, t:80, w:1146, h:755) -> right=IntRect(l:100, t:80, w:1146, h:750) (LDimensions(width: 1280, height: 979) RDimensions(width: 1280, height: 973))

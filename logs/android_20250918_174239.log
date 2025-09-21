@@ -1,0 +1,17 @@
+09-18 17:16:44.746 I/flutter ( 4567): The Dart VM service is listening on http://127.0.0.1:37189/UP-sscBy0L0=/
+09-18 17:35:25.681 I/ResourceExtractor( 5317): Extracted baseline resource assets/flutter_assets/kernel_blob.bin
+09-18 17:35:25.682 I/ResourceExtractor( 5317): Extracted baseline resource assets/flutter_assets/vm_snapshot_data
+09-18 17:35:25.716 I/ResourceExtractor( 5317): Extracted baseline resource assets/flutter_assets/isolate_snapshot_data
+09-18 17:35:25.799 I/flutter ( 5317): The Dart VM service is listening on http://127.0.0.1:43543/b3S6a9mTx6I=/
+09-18 17:39:05.599 I/flutter ( 5317): [Diffapp][select] name=image (1).png size=1512x1156 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/1cd407c8-312e-48a4-a23b-d72f3441e36f/image (1).png
+09-18 17:39:15.468 I/flutter ( 5317): [Diffapp][select] name=image (2).png size=1510x1148 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/0f7f391f-a5cb-4136-a361-793142805dc3/image (2).png
+09-18 17:39:17.882 I/flutter ( 5317): [Diffapp][init] leftInput=1512x1156 rightInput=1510x1148
+09-18 17:39:17.882 I/flutter ( 5317): [Diffapp][init] leftNorm=1280x979 rightNorm=1280x973
+09-18 17:39:27.585 I/flutter ( 5317): [Diffapp][rect] left=IntRect(l:0, t:389, w:1228, h:200) -> right=IntRect(l:0, t:387, w:1228, h:198) (LDimensions(width: 1280, height: 979) RDimensions(width: 1280, height: 973))
+09-18 17:43:45.168 I/flutter ( 5597): The Dart VM service is listening on http://127.0.0.1:43823/y1kxM7Kt1Rw=/
+09-18 17:44:06.142 I/flutter ( 5597): [Diffapp][select] name=image (1).png size=1512x1156 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/c9985910-b9fc-4acf-a70d-2a5905646182/image (1).png
+09-18 17:44:14.943 I/flutter ( 5597): [Diffapp][select] name=image (2).png size=1510x1148 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/2313e16a-82b9-42c0-9c9c-021e7f8e9b69/image (2).png
+09-18 17:44:17.429 I/flutter ( 5597): [Diffapp][init] leftInput=1512x1156 rightInput=1510x1148
+09-18 17:44:17.430 I/flutter ( 5597): [Diffapp][init] leftNorm=1280x979 rightNorm=1280x973
+09-18 17:44:35.498 I/flutter ( 5597): [Diffapp][rect] left=IntRect(l:0, t:428, w:1262, h:275) -> right=IntRect(l:0, t:425, w:1262, h:274) (LDimensions(width: 1280, height: 979) RDimensions(width: 1280, height: 973))
+09-18 18:01:06.042 I/flutter ( 5597): [Diffapp][rect] left=IntRect(l:152, t:364, w:321, h:342) -> right=IntRect(l:152, t:362, w:321, h:340) (LDimensions(width: 1280, height: 979) RDimensions(width: 1280, height: 973))
