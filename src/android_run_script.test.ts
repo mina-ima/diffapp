@@ -33,4 +33,12 @@ describe('Android 実行スクリプト run_android.sh', () => {
     // 「A VD」のような分割表記ではなく "AVD" と連続していることを要求
     expect(t).toMatch(/Androidエミュレーター\(AVD\)が見つかりません/);
   });
+
+  it('任意の端末IDを引数で指定できる（第一引数を -d に渡す）', () => {
+    const t = readFileSync('scripts/run_android.sh', 'utf-8');
+    // 第一引数の受け取り
+    expect(t).toMatch(/DEVICE_ID=\$\{1:-\}/);
+    // -d "$DEVICE_ID" を RUN_ARGS に含める
+    expect(t).toMatch(/RUN_ARGS\+\=\( -d \"\$DEVICE_ID\" \)/);
+  });
 });

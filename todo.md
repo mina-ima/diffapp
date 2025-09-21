@@ -24,6 +24,7 @@
   - [x] ルートの Android 補助スクリプト（`android:doctor` / `android:emulators`）を FVM 優先に統一
   - [x] エミュレータ再起動補助 `android:reboot` を追加（`scripts/reboot_android.sh`）
   - [x] 署名付き iOS/Android リリースビルドを追加（Secrets がある場合のみ実行）
+  - [x] Android 実行スクリプト `pnpm android`（`scripts/run_android.sh`）を追加し、Web テストで存在・挙動（FVM優先/依存取得/AVD検出/`lib/main.dart`実行）を検証（`src/android_run_script.test.ts`）
 
 ---
 

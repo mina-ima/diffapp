@@ -19,12 +19,20 @@ cd "$APP_DIR"
 
 "${FLUTTER_CMD[@]}" doctor -v || true
 
+# Optional first argument: explicit device/emulator id (e.g., emulator-5554)
+DEVICE_ID=${1:-}
+
 # Ensure dependencies are installed
 echo "[INFO] flutter pub get"
 "${FLUTTER_CMD[@]}" pub get
 
-# If a device is already attached, prefer the first Android emulator id (emulator-XXXX).
-CURRENT_DEVICE_ID=$("${FLUTTER_CMD[@]}" devices 2>/dev/null | sed -n 's/.*\(emulator-[0-9]\+\).*/\1/p' | head -n1) || true
+# If a device is already attached, prefer the first Android emulator id (emulator-XXXX),
+# unless an explicit DEVICE_ID was provided.
+if [[ -n "$DEVICE_ID" ]]; then
+  CURRENT_DEVICE_ID="$DEVICE_ID"
+else
+  CURRENT_DEVICE_ID=$("${FLUTTER_CMD[@]}" devices 2>/dev/null | sed -n 's/.*\(emulator-[0-9]\+\).*/\1/p' | head -n1) || true
+fi
 
 if [[ -z "${CURRENT_DEVICE_ID:-}" ]]; then
   # No device; try to launch the first Android emulator listed by Flutter.
@@ -63,7 +71,8 @@ fi
 
 RUN_ARGS=(run)
 if [[ -n "${CURRENT_DEVICE_ID:-}" ]]; then
-  RUN_ARGS+=( -d "$CURRENT_DEVICE_ID" )
+  # Prefer explicit device id when provided
+  RUN_ARGS+=( -d "$DEVICE_ID" )
 fi
 
 # Ensure we target the app's main entry
