@@ -31,7 +31,7 @@ if [[ -z "${CURRENT_DEVICE_ID:-}" ]]; then
   # Prefer the first Android emulator row from the table output of `flutter emulators`
   EMULATOR_ID=$("${FLUTTER_CMD[@]}" emulators 2>/dev/null | awk -F "•" '/android/ {gsub(/^ +| +$/,"", $1); print $1; exit}')
   if [[ -z "${EMULATOR_ID:-}" ]]; then
-    echo "[ERROR] Androidエミュレーター(A VD)が見つかりません。Android StudioでAVDを作成してください。" >&2
+    echo "[ERROR] Androidエミュレーター(AVD)が見つかりません。Android StudioでAVDを作成してください。" >&2
     echo "ヒント: Android Studio > Device Manager > Create Virtual Device" >&2
     exit 1
   fi
