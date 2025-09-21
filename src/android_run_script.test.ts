@@ -38,7 +38,17 @@ describe('Android 実行スクリプト run_android.sh', () => {
     const t = readFileSync('scripts/run_android.sh', 'utf-8');
     // 第一引数の受け取り
     expect(t).toMatch(/DEVICE_ID=\$\{1:-\}/);
-    // -d "$DEVICE_ID" を RUN_ARGS に含める
-    expect(t).toMatch(/RUN_ARGS\+\=\( -d \"\$DEVICE_ID\" \)/);
+    // -d "$CURRENT_DEVICE_ID" を RUN_ARGS に含める（存在確認後に使用）
+    expect(t).toMatch(/RUN_ARGS\+\=\( -d \"\$CURRENT_DEVICE_ID\" \)/);
+  });
+
+  it('指定した端末IDが接続されていない場合は AVD を起動してから実行する', () => {
+    const t = readFileSync('scripts/run_android.sh', 'utf-8');
+    // 端末の存在確認（adb get-state）を行う
+    expect(t).toMatch(/adb\s+-s\s+\"\$DEVICE_ID\"\s+get-state/);
+    // 未接続なら CURRENT_DEVICE_ID を空にして起動フローにフォールバック
+    expect(t).toMatch(/CURRENT_DEVICE_ID=\"\"/);
+    // AVD 起動ロジック（flutter emulators --launch ...）が存在
+    expect(t).toMatch(/emulators\s+--launch/);
   });
 });

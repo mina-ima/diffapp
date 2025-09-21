@@ -29,15 +29,27 @@ echo "[INFO] flutter pub get"
 # If a device is already attached, prefer the first Android emulator id (emulator-XXXX),
 # unless an explicit DEVICE_ID was provided.
 if [[ -n "$DEVICE_ID" ]]; then
-  CURRENT_DEVICE_ID="$DEVICE_ID"
+  # If explicit device id was provided, make sure it's connected; otherwise, fallback to launch flow
+  if command -v adb >/dev/null 2>&1; then
+    STATE=$(adb -s "$DEVICE_ID" get-state 2>/dev/null || true)
+  else
+    STATE=""
+  fi
+  if [[ "$STATE" == "device" ]]; then
+    CURRENT_DEVICE_ID="$DEVICE_ID"
+  else
+    CURRENT_DEVICE_ID=""
+  fi
 else
   CURRENT_DEVICE_ID=$("${FLUTTER_CMD[@]}" devices 2>/dev/null | sed -n 's/.*\(emulator-[0-9]\+\).*/\1/p' | head -n1) || true
 fi
 
 if [[ -z "${CURRENT_DEVICE_ID:-}" ]]; then
   # No device; try to launch the first Android emulator listed by Flutter.
-  # Prefer the first Android emulator row from the table output of `flutter emulators`
-  EMULATOR_ID=$("${FLUTTER_CMD[@]}" emulators 2>/dev/null | awk -F "•" '/android/ {gsub(/^ +| +$/,"", $1); print $1; exit}')
+  # Prefer the first Android emulator row from the table output of `flutter emulators`.
+  # Be tolerant of non-zero exit from `flutter emulators` (no AVD installed, etc.).
+  EMULATOR_LIST=$("${FLUTTER_CMD[@]}" emulators 2>/dev/null || true)
+  EMULATOR_ID=$(awk -F "•" '/android/ {gsub(/^ +| +$/,"", $1); print $1; exit}' <<< "$EMULATOR_LIST")
   if [[ -z "${EMULATOR_ID:-}" ]]; then
     echo "[ERROR] Androidエミュレーター(AVD)が見つかりません。Android StudioでAVDを作成してください。" >&2
     echo "ヒント: Android Studio > Device Manager > Create Virtual Device" >&2
@@ -71,8 +83,8 @@ fi
 
 RUN_ARGS=(run)
 if [[ -n "${CURRENT_DEVICE_ID:-}" ]]; then
-  # Prefer explicit device id when provided
-  RUN_ARGS+=( -d "$DEVICE_ID" )
+  # Prefer explicit/current device id
+  RUN_ARGS+=( -d "$CURRENT_DEVICE_ID" )
 fi
 
 # Ensure we target the app's main entry

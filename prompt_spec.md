@@ -75,7 +75,9 @@ AIモデル TensorFlow Lite（CNN） 形・文字認識補強
   - `pnpm android:doctor` → `cd diffapp && fvm flutter doctor -v`
   - `pnpm android:emulators` → `fvm flutter emulators && fvm flutter devices`
   - `pnpm android:reboot` → `bash scripts/reboot_android.sh <emulator-id>`（ADBで再起動し、`sys.boot_completed=1` まで待機）
-  - `pnpm android` → `bash scripts/run_android.sh`（FVM優先／依存取得／エミュレータ起動／`lib/main.dart` 実行まで自動）
+  - `pnpm android [<emulator-id>]` → `bash scripts/run_android.sh [<emulator-id>]`
+    - FVM優先／依存取得／エミュレータ起動／`lib/main.dart` 実行まで自動
+    - 第一引数で端末ID（例: `emulator-5554`）を指定すると、その端末に対して `-d` を適用
   - 上記の `scripts/run_android.sh` の存在・主要挙動は Web テストで担保（`src/android_run_script.test.ts`）
 
     2.7 結果表示
