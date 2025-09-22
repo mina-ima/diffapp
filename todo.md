@@ -204,6 +204,20 @@
 - [x] 実装箇所: `lib/cnn_detection.dart`, `lib/tflite_cnn_native.dart`
 - [x] 単体テスト追加: `test/detection_spine_like_test.dart`（右上の細い縦線を検出できること）
 
+## 11. ドキュメント整備（タイル分割フォールバック）
+
+- [x] `diffapp/docs/detection_pipeline_plan.md` に 20×20 タイル分割フォールバックの手順と「上位10クラスター追加」を明記
+- [x] Web テストで存在検証: `src/detection_tile_fallback_doc.test.ts`
+
+## 12. 色差と位置合わせの強化
+
+- [x] 色差を明度変化にロバストにする（クロマ距離+RGB距離のブレンド）
+  - 実装: `colorDiffMapRgbaRobust` を追加し `ComparePage` で採用
+  - テスト: `diffapp/test/color_diff_robust_test.dart`
+- [x] 位置合わせ強化（Harris+BRIEF→Hamming 比率テスト+クロスチェック→RANSAC）
+  - キーポイント数を増強・閾値緩和、比率テスト導入、RANSAC 反復/閾値の調整
+  - 実装: `lib/features.dart`, `lib/screens/compare_page.dart`
+
 ---
 
 ## 9. 手動検証（エミュレーター）

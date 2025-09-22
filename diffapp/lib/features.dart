@@ -204,3 +204,67 @@ List<(int, int, int)> matchDescriptorsHamming(
   }
   return out;
 }
+
+/// Hammingマッチ（Loweの比率テスト + 相互一致のクロスチェック + ソート）
+List<(int, int, int)> matchDescriptorsHammingRatioCross(
+  List<List<int>> q,
+  List<List<int>> t, {
+  double ratio = 0.8,
+  bool crossCheck = true,
+  int maxMatches = 2000,
+}) {
+  final best = List<(int j, int d, int d2)?>.filled(q.length, null);
+  for (var i = 0; i < q.length; i++) {
+    int bestJ = -1, bestD = 1 << 30, second = 1 << 30;
+    for (var j = 0; j < t.length; j++) {
+      final d = hammingDistance(q[i], t[j]);
+      if (d < bestD) {
+        second = bestD;
+        bestD = d;
+        bestJ = j;
+      } else if (d < second) {
+        second = d;
+      }
+    }
+    if (bestJ >= 0) best[i] = (bestJ, bestD, second);
+  }
+
+  // Ratio test
+  final cand = <(int i, int j, int d)>[];
+  for (var i = 0; i < best.length; i++) {
+    final b = best[i];
+    if (b == null) continue;
+    final (j, d, d2) = b;
+    if (d2 == 0) continue;
+    if (d / d2 <= ratio) {
+      cand.add((i, j, d));
+    }
+  }
+
+  // Cross-check (optional)
+  List<(int i, int j, int d)> checked;
+  if (crossCheck) {
+    final revBest = List<int>.filled(t.length, -1);
+    final revDist = List<int>.filled(t.length, 1 << 30);
+    for (var j = 0; j < t.length; j++) {
+      int bestI = -1, bestD = 1 << 30;
+      for (var i = 0; i < q.length; i++) {
+        final d = hammingDistance(t[j], q[i]);
+        if (d < bestD) {
+          bestD = d;
+          bestI = i;
+        }
+      }
+      revBest[j] = bestI;
+      revDist[j] = bestD;
+    }
+    checked = cand.where((m) => revBest[m.$2] == m.$1).toList();
+  } else {
+    checked = cand;
+  }
+
+  // sort by distance and cap
+  checked.sort((a, b) => a.$3.compareTo(b.$3));
+  if (checked.length > maxMatches) return checked.sublist(0, maxMatches);
+  return checked;
+}

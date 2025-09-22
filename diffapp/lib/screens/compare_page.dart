@@ -194,23 +194,23 @@ class _ComparePageState extends State<ComparePage>
     // 画像の微小ズレを補正: Harris+BRIEFで対応点→ホモグラフィ推定→右画像を左にワーピング
     try {
       final kL = detectHarrisKeypointsU8(grayL, targetW, targetH,
-          responseThreshold: 1e6, maxFeatures: 400);
+          responseThreshold: 2e5, maxFeatures: 800);
       final kR = detectHarrisKeypointsU8(grayR, targetW, targetH,
-          responseThreshold: 1e6, maxFeatures: 400);
+          responseThreshold: 2e5, maxFeatures: 800);
       if (kL.length >= 8 && kR.length >= 8) {
         final dL = computeBriefDescriptors(grayL, targetW, targetH, kL);
         final dR = computeBriefDescriptors(grayR, targetW, targetH, kR);
-        final m = matchDescriptorsHamming(dL, dR);
-        if (m.length >= 20) {
+        final m = matchDescriptorsHammingRatioCross(dL, dR, ratio: 0.82, crossCheck: true, maxMatches: 1000);
+        if (m.length >= 16) {
           final src = <Point2>[];
           final dst = <Point2>[];
-          for (var i = 0; i < m.length && i < 200; i++) {
+          for (var i = 0; i < m.length && i < 300; i++) {
             final (qi, tj, _) = m[i];
             src.add(Point2(kL[qi].x.toDouble(), kL[qi].y.toDouble()));
             dst.add(Point2(kR[tj].x.toDouble(), kR[tj].y.toDouble()));
           }
           final hr = estimateHomographyRansac(src, dst,
-              iterations: 300, inlierThreshold: 2.0, minInliers: 20);
+              iterations: 600, inlierThreshold: 1.5, minInliers: 16);
           final warped = warpRgbaByHomography(rgbaR0, targetW, targetH, hr.homography, targetW, targetH);
           rgbaR = warped;
           grayR = _rgbaToGray(warped);
@@ -226,7 +226,8 @@ class _ComparePageState extends State<ComparePage>
     // SSIM差分 + 色差分 + 勾配差分 を統合
     final ssim = computeSsimMapUint8(blurL, blurR, targetW, targetH, windowRadius: 0);
     final diffSsim = ssim.map((v) => 1.0 - v).toList();
-    final diffColor = colorDiffMapRgba(rgbaL, rgbaR, targetW, targetH);
+    // 明度差に頑健な色差（クロマ重視）で差分を算出
+    final diffColor = colorDiffMapRgbaRobust(rgbaL, rgbaR, targetW, targetH);
     // 勾配マップの差分（向きや輪郭の違いを強調）
     final gradL = sobelGradMagU8(grayL, targetW, targetH);
     final gradR = sobelGradMagU8(grayR, targetW, targetH);
@@ -235,9 +236,9 @@ class _ComparePageState extends State<ComparePage>
     // 構造(SSIM)と色の両方が高い場所を持ち上げる（幾何平均）+ 妥当な線形ブレンド
     final geom = List<double>.generate(diffSsim.length, (i) => math.sqrt(diffSsim[i] * diffColor[i]));
     final diffCombined = List<double>.generate(diffSsim.length, (i) {
-      final s = diffSsim[i] * 0.7 + diffGradN[i] * 0.3;
-      final c = diffColor[i] * 1.2; // 色の寄与をさらに強めに
-      final g = geom[i] * 1.1;      // 両方高いピクセルを強調
+      final s = diffSsim[i] * 0.6 + diffGradN[i] * 0.4; // エッジ差分の比重をやや上げる
+      final c = diffColor[i] * 1.35; // 色差の寄与を強化（明度補正込み）
+      final g = geom[i] * 1.1;       // 両方高いピクセルを強調
       final m1 = s > c ? s : c;
       return m1 > g ? m1 : g;
     });

@@ -382,6 +382,48 @@ List<double> colorDiffMapRgba(
   return out;
 }
 
+/// Color difference robust to brightness changes.
+/// Uses chromaticity (r/sum, g/sum, b/sum) distance blended with raw RGB distance.
+/// Returns values in [0,1].
+List<double> colorDiffMapRgbaRobust(
+  List<int> rgbaA,
+  List<int> rgbaB,
+  int width,
+  int height,
+) {
+  final n = width * height;
+  if (rgbaA.length != n * 4 || rgbaB.length != n * 4) {
+    throw ArgumentError('RGBA buffers must be width*height*4 bytes');
+  }
+  const normRgb = 441.67295593; // sqrt(3)*255
+  const eps = 1e-6;
+  final out = List<double>.filled(n, 0.0);
+  for (var i = 0, p = 0; i < n; i++, p += 4) {
+    final r1 = rgbaA[p].toDouble();
+    final g1 = rgbaA[p + 1].toDouble();
+    final b1 = rgbaA[p + 2].toDouble();
+    final r2 = rgbaB[p].toDouble();
+    final g2 = rgbaB[p + 1].toDouble();
+    final b2 = rgbaB[p + 2].toDouble();
+    // Raw RGB distance
+    final dr = (r1 - r2).abs();
+    final dg = (g1 - g2).abs();
+    final db = (b1 - b2).abs();
+    final dRgb = math.sqrt(dr * dr + dg * dg + db * db) / normRgb;
+    // Chromaticity distance (brightness-invariant)
+    final s1 = r1 + g1 + b1 + eps;
+    final s2 = r2 + g2 + b2 + eps;
+    final cr1 = r1 / s1, cg1 = g1 / s1, cb1 = b1 / s1;
+    final cr2 = r2 / s2, cg2 = g2 / s2, cb2 = b2 / s2;
+    final dcr = cr1 - cr2, dcg = cg1 - cg2, dcb = cb1 - cb2;
+    final dChroma = math.sqrt(dcr * dcr + dcg * dcg + dcb * dcb) / math.sqrt(3);
+    // Blend: emphasize chroma to be robust; keep some raw for strong color shifts
+    final d = (dChroma * 0.7 + dRgb * 0.3).clamp(0.0, 1.0);
+    out[i] = d.isFinite ? d : 0.0;
+  }
+  return out;
+}
+
 // -----------------------------
 // Tilt correction (Similarity Transform skeleton)
 // -----------------------------
