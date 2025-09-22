@@ -97,12 +97,13 @@ class MockCnnDetector implements CnnDetector {
     // 解析解像度が上がっても絶対面積しきい値が過度に増えないようにする。
     const refArea = 64 * 64; // 4096
     final minAreaPx = (refArea * (settings.minAreaPercent / 100)).ceil();
+    // まずは小領域も含めて連結成分を抽出（最小面積は後段の形状別フィルタで調整）
     var boxes = connectedComponentsBoundingBoxes(
       bin,
       width,
       height,
       eightConnected: true,
-      minArea: minAreaPx < 2 ? 2 : minAreaPx,
+      minArea: 2,
     );
 
     // scores = peak (max) diff value within each box（広域よりも局所の強さを優先）
@@ -111,17 +112,23 @@ class MockCnnDetector implements CnnDetector {
       scores.add(boxMaxScore(diffMap, width, b));
     }
 
-    // Filter out overly-large regions (e.g., near full-screen) by max area ratio
-    final maxAreaPx = (width * height * 0.3).ceil(); // 30% 上限（広域誤検出の抑制強化）
+    // 面積・形状に応じたフィルタリング
+    // - 広域（画面の30%以上）は除外
+    // - 通常は minAreaPx 未満を除外
+    // - ただし細長い領域（比率>=4.0）は minAreaPx の25% 以上なら許容（背表紙のような細い差分を拾う）
+    final maxAreaPx = (width * height * 0.3).ceil();
     if (boxes.isNotEmpty) {
       final nextBoxes = <IntRect>[];
       final nextScores = <double>[];
       for (var i = 0; i < boxes.length; i++) {
-        final area = boxes[i].width * boxes[i].height;
-        if (area <= maxAreaPx) {
-          nextBoxes.add(boxes[i]);
-          nextScores.add(scores[i]);
-        }
+        final b = boxes[i];
+        final area = b.width * b.height;
+        if (area > maxAreaPx) continue; // 大きすぎる
+        final elongated = isElongated(b, ratio: 4.0);
+        final enoughArea = area >= minAreaPx || (elongated && area >= (minAreaPx * 0.25));
+        if (!enoughArea) continue;
+        nextBoxes.add(b);
+        nextScores.add(scores[i]);
       }
       boxes = nextBoxes;
       scores = nextScores;
@@ -157,7 +164,7 @@ class MockCnnDetector implements CnnDetector {
         width,
         height,
         eightConnected: true,
-        minArea: minAreaPx2 < 2 ? 2 : minAreaPx2,
+        minArea: 2,
       );
       // apply the same max area cap
       final maxAreaPx2 = (width * height * 0.4).ceil();
@@ -169,15 +176,16 @@ class MockCnnDetector implements CnnDetector {
         final nb = <IntRect>[];
         final ns = <double>[];
         for (var i = 0; i < boxes2.length; i++) {
-          final area = boxes2[i].width * boxes2[i].height;
-          if (area <= maxAreaPx2) {
-            nb.add(boxes2[i]);
-            ns.add(scores2[i]);
-          }
+          final b = boxes2[i];
+          final area = b.width * b.height;
+          if (area > maxAreaPx2) continue;
+          final elongated = isElongated(b, ratio: 4.0);
+          final enoughArea = area >= minAreaPx2 || (elongated && area >= (minAreaPx2 * 0.25));
+          if (!enoughArea) continue;
+          nb.add(b);
+          ns.add(scores2[i]);
         }
         boxes2 = nb;
-        // scores2 will be re-bound below to ns
-        // Rebuild scores2 to filtered list
         scores2
           ..clear()
           ..addAll(ns);
@@ -248,6 +256,125 @@ class MockCnnDetector implements CnnDetector {
           out.add(Detection(box: p, score: 1.0, category: cats[out.length % cats.length]));
           if (out.length >= 3) break;
         }
+      }
+    }
+
+    // Tile-cluster fallback/augmentation (e.g., detect long thin structures like book spines)
+    // 20x20=400 タイルに分割し、タイルごとに平均（高分位）スコアを計算 →
+    // 閾値以上のタイルの連なりを連結成分として抽出して上位を追加。
+    final tileAug = _detectByTileClusters(
+      diffMap, width, height,
+      settings: settings,
+      gridW: 20, gridH: 20,
+      maxClusters: math.min(10, maxOutputs),
+    );
+    if (tileAug.isNotEmpty) {
+      // 既存検出と重複しないものを追加
+      for (final d in tileAug) {
+        bool overlaps = false;
+        for (final e in out) {
+          if (iou(d.box, e.box) > 0.4) { overlaps = true; break; }
+        }
+        if (!overlaps) {
+          out.add(d);
+          if (out.length >= maxOutputs) break;
+        }
+      }
+    }
+    return out;
+  }
+
+  List<Detection> _detectByTileClusters(
+    List<double> diff,
+    int w,
+    int h, {
+    required Settings settings,
+    int gridW = 20,
+    int gridH = 20,
+    int maxClusters = 10,
+  }) {
+    if (gridW <= 0 || gridH <= 0) return const <Detection>[];
+    final cats = _enabledCategories(settings);
+
+    // タイル平均（上位分位の平均）を計算
+    final tileScores = List<double>.filled(gridW * gridH, 0.0);
+    final tileCounts = List<int>.filled(gridW * gridH, 0);
+    final cellW = w / gridW;
+    final cellH = h / gridH;
+    for (var ty = 0; ty < gridH; ty++) {
+      for (var tx = 0; tx < gridW; tx++) {
+        final left = (tx * cellW).floor();
+        final top = (ty * cellH).floor();
+        final right = (((tx + 1) * cellW).ceil()).clamp(1, w) - 1;
+        final bottom = (((ty + 1) * cellH).ceil()).clamp(1, h) - 1;
+        final vals = <double>[];
+        for (var y = top; y <= bottom; y++) {
+          final row = y * w;
+          for (var x = left; x <= right; x++) {
+            vals.add(diff[row + x]);
+          }
+        }
+        if (vals.isNotEmpty) {
+          vals.sort();
+          final start = (vals.length * 0.8).floor().clamp(0, vals.length - 1);
+          double sum = 0; int cnt = 0;
+          for (var i = start; i < vals.length; i++) { sum += vals[i]; cnt++; }
+          final meanTop = cnt == 0 ? 0.0 : sum / cnt;
+          final idx = ty * gridW + tx;
+          tileScores[idx] = meanTop;
+          tileCounts[idx] = (right - left + 1) * (bottom - top + 1);
+        }
+      }
+    }
+
+    // タイルスコアに対してしきい値
+    final otsu = otsuThreshold01(tileScores);
+    final base = (0.9 - (settings.precision - 1) * 0.05).clamp(0.6, 0.9);
+    final thr = math.max(otsu, base * 0.7); // 多少緩め
+
+    // 二値化 → 連結成分（タイル空間）
+    final bin = tileScores.map((s) => s >= thr ? 1 : 0).toList(growable: false);
+    var comps = connectedComponentsBoundingBoxes(bin, gridW, gridH,
+        eightConnected: true, minArea: 1);
+
+    // タイルコンポーネントをピクセル矩形へ変換しスコア付け
+    final items = <(IntRect box, double score)>[];
+    for (final c in comps) {
+      // ピクセル座標へ
+      final leftPx = (c.left * cellW).floor();
+      final topPx = (c.top * cellH).floor();
+      final rightPx = (((c.left + c.width) * cellW).ceil()).clamp(1, w) - 1;
+      final bottomPx = (((c.top + c.height) * cellH).ceil()).clamp(1, h) - 1;
+      final box = IntRect(
+        left: leftPx.clamp(0, w - 1),
+        top: topPx.clamp(0, h - 1),
+        width: (rightPx - leftPx + 1).clamp(1, w),
+        height: (bottomPx - topPx + 1).clamp(1, h),
+      );
+      // コンポーネント内のタイルスコア合算
+      double sum = 0.0; int cnt = 0;
+      for (var ty = c.top; ty < c.top + c.height; ty++) {
+        for (var tx = c.left; tx < c.left + c.width; tx++) {
+          sum += tileScores[ty * gridW + tx] * tileCounts[ty * gridW + tx];
+          cnt += tileCounts[ty * gridW + tx];
+        }
+      }
+      final s = cnt == 0 ? 0.0 : sum / cnt;
+      items.add((box, s));
+    }
+
+    // スコア降順で上位を採用、さらに軽いNMSで重複除去
+    items.sort((a, b) => b.$2.compareTo(a.$2));
+    final out = <Detection>[];
+    for (final it in items) {
+      bool sup = false;
+      for (final d in out) {
+        if (iou(d.box, it.$1) > 0.4) { sup = true; break; }
+      }
+      if (!sup) {
+        final b = expandClampBox(it.$1, 2, (w * 0.06).round(), w, h);
+        out.add(Detection(box: b, score: it.$2, category: cats[out.length % cats.length]));
+        if (out.length >= maxClusters) break;
       }
     }
     return out;

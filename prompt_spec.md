@@ -69,6 +69,19 @@ AIモデル TensorFlow Lite（CNN） 形・文字認識補強
 
 - `diffapp/docs/detection_pipeline_plan.md`（検査パイプライン計画。1280幅、5秒以内、SSIM→しきい値（二値化）→連結成分→NMS→TFLite 補強の段階実装）
 
+補足（背表紙のような細長い差分への最適化）
+
+- 連結成分の抽出段階では最小面積フィルタを緩めた上で抽出し、後段フィルタで形状に応じた面積しきい値を適用。
+- 通常は基準解像度64×64に対する面積（minAreaPercent=2% → 約82px）未満を除外。
+- ただし縦横比が大きい細長領域（ratio>=4.0）は、最小面積の25%まで許容し候補に残す（本の背表紙のような細い差分を拾う）。
+- 単体テスト: `diffapp/test/detection_spine_like_test.dart` で右上の細い縦線を検出できることを担保。
+
+追加（タイル分割フォールバック）
+
+- 範囲（解析空間）を 20×20=400 タイルに分割し、タイルごとに上位分位の平均スコアで二値化→連結成分抽出→上位10クラスターを追加検出として採用。
+- 調整が不十分で線画が多くずれている場合も、連なりの強いタイルを拾うため頑健。
+- 実装: `lib/cnn_detection.dart` の `_detectByTileClusters`。テスト: `diffapp/test/tile_fallback_detection_test.dart`。
+
 開発補助スクリプト
 
 - ルート `package.json` の Android 補助コマンドは FVM の `flutter` を優先

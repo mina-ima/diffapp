@@ -61,12 +61,13 @@ class TfliteCnnNative implements CnnNative {
     final bin = hysteresisBinary(diffMap, width, height, high: thr, low: lowThr);
     const refArea = 64 * 64; // 4096 基準
     final minAreaPx = (refArea * (settings.minAreaPercent / 100)).ceil();
+    // 小領域も拾ってから後段で形状別にフィルタする
     var boxes = connectedComponentsBoundingBoxes(
       bin,
       width,
       height,
       eightConnected: true,
-      minArea: minAreaPx < 2 ? 2 : minAreaPx,
+      minArea: 2,
     );
 
     // 平均スコアを算出
@@ -80,12 +81,18 @@ class TfliteCnnNative implements CnnNative {
     if (boxes.isNotEmpty) {
       final nextBoxes = <IntRect>[];
       final nextScores = <double>[];
+      // 最小面積の適用と細長領域の救済
+      final refArea = 64 * 64; // keep local consistent
+      final minAreaPx = (refArea * (settings.minAreaPercent / 100)).ceil();
       for (var i = 0; i < boxes.length; i++) {
-        final area = boxes[i].width * boxes[i].height;
-        if (area <= maxAreaPx) {
-          nextBoxes.add(boxes[i]);
-          nextScores.add(scores[i]);
-        }
+        final b = boxes[i];
+        final area = b.width * b.height;
+        if (area > maxAreaPx) continue;
+        final elongated = isElongated(b, ratio: 4.0);
+        final enoughArea = area >= minAreaPx || (elongated && area >= (minAreaPx * 0.25));
+        if (!enoughArea) continue;
+        nextBoxes.add(b);
+        nextScores.add(scores[i]);
       }
       boxes = nextBoxes;
       scores = nextScores;
@@ -131,7 +138,7 @@ class TfliteCnnNative implements CnnNative {
         width,
         height,
         eightConnected: true,
-        minArea: minAreaPx2 < 2 ? 2 : minAreaPx2,
+        minArea: 2,
       );
       final maxAreaPx2 = (width * height * 0.4).ceil();
       final scores2 = <double>[];
@@ -141,12 +148,16 @@ class TfliteCnnNative implements CnnNative {
       if (boxes2.isNotEmpty) {
         final nb = <IntRect>[];
         final ns = <double>[];
+        final minAreaPx2b = (refArea * (settings.minAreaPercent / 100)).ceil();
         for (var i = 0; i < boxes2.length; i++) {
-          final area = boxes2[i].width * boxes2[i].height;
-          if (area <= maxAreaPx2) {
-            nb.add(boxes2[i]);
-            ns.add(scores2[i]);
-          }
+          final b = boxes2[i];
+          final area = b.width * b.height;
+          if (area > maxAreaPx2) continue;
+          final elongated = isElongated(b, ratio: 4.0);
+          final enoughArea = area >= minAreaPx2b || (elongated && area >= (minAreaPx2b * 0.25));
+          if (!enoughArea) continue;
+          nb.add(b);
+          ns.add(scores2[i]);
         }
         boxes2 = nb;
         scores2
