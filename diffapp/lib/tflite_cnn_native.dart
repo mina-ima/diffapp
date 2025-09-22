@@ -58,12 +58,13 @@ class TfliteCnnNative implements CnnNative {
 
     final thr = _thresholdForPrecision(settings.precision);
     final bin = thresholdBinary(diffMap, thr);
+    final minAreaPx = (width * height * (settings.minAreaPercent / 100)).ceil();
     final boxes = connectedComponentsBoundingBoxes(
       bin,
       width,
       height,
       eightConnected: true,
-      minArea: 2,
+      minArea: minAreaPx < 2 ? 2 : minAreaPx,
     );
 
     // 平均スコアを算出

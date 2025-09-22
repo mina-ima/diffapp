@@ -89,12 +89,14 @@ class MockCnnDetector implements CnnDetector {
     }
     final thr = _thresholdForPrecision(settings.precision);
     final bin = thresholdBinary(diffMap, thr);
+    // 最小面積（%）を解析空間のピクセル数に変換
+    final minAreaPx = (width * height * (settings.minAreaPercent / 100)).ceil();
     final boxes = connectedComponentsBoundingBoxes(
       bin,
       width,
       height,
       eightConnected: true,
-      minArea: 2,
+      minArea: minAreaPx < 2 ? 2 : minAreaPx,
     );
 
     // scores = mean diff value within each box

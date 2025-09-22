@@ -4,6 +4,7 @@ class Settings {
   static const int minPrecision = 1;
   static const int maxPrecision = 5;
   static const int defaultPrecision = 3; // 「普通精度」
+  static const int defaultMinAreaPercent = 5; // 検出の最小面積（解析空間比）
 
   final bool detectColor;
   final bool detectShape;
@@ -12,6 +13,7 @@ class Settings {
   final bool detectText;
   final bool enableSound;
   final int precision; // 1..5
+  final int minAreaPercent; // 0..100 (% of analysis area)
 
   const Settings({
     required this.detectColor,
@@ -21,9 +23,14 @@ class Settings {
     required this.detectText,
     required this.enableSound,
     required this.precision,
-  }) : assert(
+    required this.minAreaPercent,
+  })  : assert(
           precision >= minPrecision && precision <= maxPrecision,
           'precision must be within $minPrecision..$maxPrecision',
+        ),
+        assert(
+          minAreaPercent >= 0 && minAreaPercent <= 100,
+          'minAreaPercent must be within 0..100',
         );
 
   factory Settings.initial() => const Settings(
@@ -34,6 +41,7 @@ class Settings {
         detectText: true,
         enableSound: true,
         precision: defaultPrecision,
+        minAreaPercent: defaultMinAreaPercent,
       );
 
   Settings copyWith({
@@ -44,12 +52,17 @@ class Settings {
     bool? detectText,
     bool? enableSound,
     int? precision,
+    int? minAreaPercent,
   }) {
     final nextPrecision = precision ?? this.precision;
     if (nextPrecision < minPrecision || nextPrecision > maxPrecision) {
       throw ArgumentError(
         'precision must be within $minPrecision..$maxPrecision',
       );
+    }
+    final nextMinArea = minAreaPercent ?? this.minAreaPercent;
+    if (nextMinArea < 0 || nextMinArea > 100) {
+      throw ArgumentError('minAreaPercent must be within 0..100');
     }
     return Settings(
       detectColor: detectColor ?? this.detectColor,
@@ -59,6 +72,7 @@ class Settings {
       detectText: detectText ?? this.detectText,
       enableSound: enableSound ?? this.enableSound,
       precision: nextPrecision,
+      minAreaPercent: nextMinArea,
     );
   }
 
@@ -70,6 +84,7 @@ class Settings {
         'detectText': detectText,
         'enableSound': enableSound,
         'precision': precision,
+        'minAreaPercent': minAreaPercent,
       };
 
   String toJson() => jsonEncode(toMap());
@@ -82,6 +97,10 @@ class Settings {
       throw ArgumentError(
         'precision must be within $minPrecision..$maxPrecision',
       );
+    }
+    final int nextMinArea = (map['minAreaPercent'] ?? base.minAreaPercent) as int;
+    if (nextMinArea < 0 || nextMinArea > 100) {
+      throw ArgumentError('minAreaPercent must be within 0..100');
     }
     bool readBool(String key, bool def) {
       final v = map[key];
@@ -98,6 +117,7 @@ class Settings {
       detectText: readBool('detectText', base.detectText),
       enableSound: readBool('enableSound', base.enableSound),
       precision: nextPrecision,
+      minAreaPercent: nextMinArea,
     );
   }
 
@@ -118,7 +138,8 @@ class Settings {
       other.detectSize == detectSize &&
       other.detectText == detectText &&
       other.enableSound == enableSound &&
-      other.precision == precision;
+      other.precision == precision &&
+      other.minAreaPercent == minAreaPercent;
 
   @override
   int get hashCode => Object.hash(
@@ -129,9 +150,10 @@ class Settings {
         detectText,
         enableSound,
         precision,
+        minAreaPercent,
       );
 
   @override
   String toString() =>
-      'Settings(color:$detectColor, shape:$detectShape, pos:$detectPosition, size:$detectSize, text:$detectText, sound:$enableSound, precision:$precision)';
+      'Settings(color:$detectColor, shape:$detectShape, pos:$detectPosition, size:$detectSize, text:$detectText, sound:$enableSound, precision:$precision, minArea%:$minAreaPercent)';
 }
