@@ -1,0 +1,30 @@
+09-22 12:41:57.958 D/NativeLibraryHelper(  603): Punching extracted elf file libflutter.so on fs:61267
+09-22 12:41:59.250 D/nativeloader( 4089): Load /data/app/~~Nvy12G3iBFt0mq-n5oeROA==/dev.minamidenshiimanaka.diffapp-wXfavNej--8EMtRC1eiUcg==/lib/arm64/libflutter.so using class loader ns clns-9 (caller=/data/app/~~Nvy12G3iBFt0mq-n5oeROA==/dev.minamidenshiimanaka.diffapp-wXfavNej--8EMtRC1eiUcg==/base.apk): ok
+09-22 12:42:00.123 I/ResourceExtractor( 4089): Extracted baseline resource assets/flutter_assets/kernel_blob.bin
+09-22 12:42:00.135 I/ResourceExtractor( 4089): Extracted baseline resource assets/flutter_assets/vm_snapshot_data
+09-22 12:42:00.229 I/ResourceExtractor( 4089): Extracted baseline resource assets/flutter_assets/isolate_snapshot_data
+09-22 12:42:00.417 I/flutter ( 4089): The Dart VM service is listening on http://127.0.0.1:35061/4qSw8YLbpcY=/
+09-22 12:42:00.445 I/imanaka.diffapp( 4089): hiddenapi: Accessing hidden method Landroid/view/accessibility/AccessibilityNodeInfo;->getSourceNodeId()J (runtime_flags=0, domain=platform, api=unsupported,test-api) from Lio/flutter/view/AccessibilityViewEmbedder$ReflectionAccessors; (domain=app) using reflection: allowed
+09-22 12:42:00.446 I/imanaka.diffapp( 4089): hiddenapi: Accessing hidden method Landroid/view/accessibility/AccessibilityRecord;->getSourceNodeId()J (runtime_flags=0, domain=platform, api=unsupported) from Lio/flutter/view/AccessibilityViewEmbedder$ReflectionAccessors; (domain=app) using reflection: allowed
+09-22 12:42:00.446 I/imanaka.diffapp( 4089): hiddenapi: Accessing hidden field Landroid/view/accessibility/AccessibilityNodeInfo;->mChildNodeIds:Landroid/util/LongArray; (runtime_flags=0, domain=platform, api=unsupported) from Lio/flutter/view/AccessibilityViewEmbedder$ReflectionAccessors; (domain=app) using reflection: allowed
+09-22 12:42:00.446 I/imanaka.diffapp( 4089): hiddenapi: Accessing hidden method Landroid/util/LongArray;->get(I)J (runtime_flags=0, domain=platform, api=unsupported) from Lio/flutter/view/AccessibilityViewEmbedder$ReflectionAccessors; (domain=app) using reflection: allowed
+09-22 12:42:09.477 I/flutter ( 4089): [Diffapp][select] name=22.png size=1510x1148 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/8c5ff804-e40c-4ed2-8416-3925e21b2849/22.png
+09-22 12:42:14.744 I/flutter ( 4089): [Diffapp][select] name=21.png size=1512x1156 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/90258bc5-6859-41df-84c1-f7ed0b39f7ee/21.png
+09-22 12:42:17.012 I/flutter ( 4089): [Diffapp][init] leftInput=1510x1148 rightInput=1512x1156
+09-22 12:42:17.012 I/flutter ( 4089): [Diffapp][init] leftNorm=1280x973 rightNorm=1280x979
+09-22 12:42:27.141 I/flutter ( 4089): [Diffapp][rect] left=IntRect(l:8, t:13, w:1243, h:945) -> right=IntRect(l:8, t:13, w:1243, h:951) (LDimensions(width: 1280, height: 973) RDimensions(width: 1280, height: 979))
+09-22 13:29:57.755 D/NativeLibraryHelper(  603): Punching extracted elf file libflutter.so on fs:61267
+09-22 13:29:59.395 D/nativeloader( 4605): Load /data/app/~~yjIKZUWnoMcPbILYT9KUJw==/dev.minamidenshiimanaka.diffapp-lpQVu8IiOkpqYUcYpqR17Q==/lib/arm64/libflutter.so using class loader ns clns-9 (caller=/data/app/~~yjIKZUWnoMcPbILYT9KUJw==/dev.minamidenshiimanaka.diffapp-lpQVu8IiOkpqYUcYpqR17Q==/base.apk): ok
+09-22 13:30:00.133 I/ResourceExtractor( 4605): Extracted baseline resource assets/flutter_assets/kernel_blob.bin
+09-22 13:30:00.134 I/ResourceExtractor( 4605): Extracted baseline resource assets/flutter_assets/vm_snapshot_data
+09-22 13:30:00.244 I/ResourceExtractor( 4605): Extracted baseline resource assets/flutter_assets/isolate_snapshot_data
+09-22 13:30:00.443 I/flutter ( 4605): The Dart VM service is listening on http://127.0.0.1:45399/R6XphbDNt24=/
+09-22 13:30:00.467 I/imanaka.diffapp( 4605): hiddenapi: Accessing hidden method Landroid/view/accessibility/AccessibilityNodeInfo;->getSourceNodeId()J (runtime_flags=0, domain=platform, api=unsupported,test-api) from Lio/flutter/view/AccessibilityViewEmbedder$ReflectionAccessors; (domain=app) using reflection: allowed
+09-22 13:30:00.468 I/imanaka.diffapp( 4605): hiddenapi: Accessing hidden method Landroid/view/accessibility/AccessibilityRecord;->getSourceNodeId()J (runtime_flags=0, domain=platform, api=unsupported) from Lio/flutter/view/AccessibilityViewEmbedder$ReflectionAccessors; (domain=app) using reflection: allowed
+09-22 13:30:00.468 I/imanaka.diffapp( 4605): hiddenapi: Accessing hidden field Landroid/view/accessibility/AccessibilityNodeInfo;->mChildNodeIds:Landroid/util/LongArray; (runtime_flags=0, domain=platform, api=unsupported) from Lio/flutter/view/AccessibilityViewEmbedder$ReflectionAccessors; (domain=app) using reflection: allowed
+09-22 13:30:00.468 I/imanaka.diffapp( 4605): hiddenapi: Accessing hidden method Landroid/util/LongArray;->get(I)J (runtime_flags=0, domain=platform, api=unsupported) from Lio/flutter/view/AccessibilityViewEmbedder$ReflectionAccessors; (domain=app) using reflection: allowed
+09-22 13:30:07.184 I/flutter ( 4605): [Diffapp][select] name=22.png size=1510x1148 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/17b9c32c-fb09-4b2a-901c-4144677626e0/22.png
+09-22 13:30:10.752 I/flutter ( 4605): [Diffapp][select] name=21.png size=1512x1156 path=/data/user/0/dev.minamidenshiimanaka.diffapp/cache/b44f2408-00b4-4cd1-9891-84f97a2ac263/21.png
+09-22 13:30:12.332 I/flutter ( 4605): [Diffapp][init] leftInput=1510x1148 rightInput=1512x1156
+09-22 13:30:12.333 I/flutter ( 4605): [Diffapp][init] leftNorm=1280x973 rightNorm=1280x979
+09-22 13:30:23.533 I/flutter ( 4605): [Diffapp][rect] left=IntRect(l:17, t:93, w:1253, h:880) -> right=IntRect(l:17, t:94, w:1253, h:885) (LDimensions(width: 1280, height: 973) RDimensions(width: 1280, height: 979))

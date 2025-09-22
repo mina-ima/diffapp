@@ -29,6 +29,7 @@ void main() {
       detectText: true,
       enableSound: true,
       precision: 1,
+      minAreaPercent: Settings.defaultMinAreaPercent,
     );
     final resLow = det.detectFromDiffMap(diff, w, h, settings: low);
     expect(resLow.isEmpty, isTrue);

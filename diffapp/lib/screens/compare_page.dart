@@ -12,6 +12,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:diffapp/widgets/cropped_image.dart';
 import 'package:diffapp/cnn_detection.dart';
+import 'package:diffapp/features.dart';
 
 class ComparePage extends StatefulWidget {
   final SelectedImage left;
@@ -141,8 +142,8 @@ class _ComparePageState extends State<ComparePage>
       return <IntRect>[];
     }
     // 同一サイズに揃える（64x64固定）。選択範囲があればその矩形のみを切り出して解析。
-    const targetW = 64;
-    const targetH = 64;
+    const targetW = 128;
+    const targetH = 128;
 
     Rect? leftCropSrc;
     Rect? rightCropSrc;
@@ -176,19 +177,66 @@ class _ComparePageState extends State<ComparePage>
         mappedRight.height * syR,
       );
 
-      // 検出ボックスは 64x64 のフル空間に対する座標で返すため、
-      // クロップ領域の原点オフセット（64系）を加算して戻す。
+      // 検出ボックスは targetW x targetH のフル空間に対する座標で返すため、
+      // クロップ領域の原点オフセット（target系）を加算して戻す。
       leftOffsetX = _leftRect!.left * (targetW / _leftNorm.width);
       leftOffsetY = _leftRect!.top * (targetH / _leftNorm.height);
     }
 
-    final grayL = await _toGrayscale(imgL, targetW, targetH, srcRect: leftCropSrc);
-    final grayR = await _toGrayscale(imgR, targetW, targetH, srcRect: rightCropSrc);
+    final rgbaL = await _toRgba(imgL, targetW, targetH, srcRect: leftCropSrc);
+    final rgbaR0 = await _toRgba(imgR, targetW, targetH, srcRect: rightCropSrc);
+    var rgbaR = rgbaR0;
+    // グレースケールもクロップ矩形を正しく適用した上で計算する
+    var grayL = await _toGrayscale(imgL, targetW, targetH, srcRect: leftCropSrc);
+    var grayR = await _toGrayscale(imgR, targetW, targetH, srcRect: rightCropSrc);
 
-    // SSIM → 差分正規化 → 二値化 → 連結成分 → NMS（モックCNNでスコア）
+    // 画像の微小ズレを補正: Harris+BRIEFで対応点→ホモグラフィ推定→右画像を左にワーピング
+    try {
+      final kL = detectHarrisKeypointsU8(grayL, targetW, targetH,
+          responseThreshold: 1e6, maxFeatures: 400);
+      final kR = detectHarrisKeypointsU8(grayR, targetW, targetH,
+          responseThreshold: 1e6, maxFeatures: 400);
+      if (kL.length >= 8 && kR.length >= 8) {
+        final dL = computeBriefDescriptors(grayL, targetW, targetH, kL);
+        final dR = computeBriefDescriptors(grayR, targetW, targetH, kR);
+        final m = matchDescriptorsHamming(dL, dR);
+        if (m.length >= 20) {
+          final src = <Point2>[];
+          final dst = <Point2>[];
+          for (var i = 0; i < m.length && i < 200; i++) {
+            final (qi, tj, _) = m[i];
+            src.add(Point2(kL[qi].x.toDouble(), kL[qi].y.toDouble()));
+            dst.add(Point2(kR[tj].x.toDouble(), kR[tj].y.toDouble()));
+          }
+          final hr = estimateHomographyRansac(src, dst,
+              iterations: 300, inlierThreshold: 2.0, minInliers: 20);
+          final warped = warpRgbaByHomography(rgbaR0, targetW, targetH, hr.homography, targetW, targetH);
+          rgbaR = warped;
+          grayR = _rgbaToGray(warped);
+        }
+      }
+    } catch (_) {
+      // アライン失敗時はフォールバック（無視）
+    }
+
+    // SSIM差分 + 色差分 + 勾配差分 を統合
     final ssim = computeSsimMapUint8(grayL, grayR, targetW, targetH, windowRadius: 0);
-    final diff = ssim.map((v) => 1.0 - v).toList();
-    final diffN = normalizeToUnit(diff);
+    final diffSsim = ssim.map((v) => 1.0 - v).toList();
+    final diffColor = colorDiffMapRgba(rgbaL, rgbaR, targetW, targetH);
+    // 勾配マップの差分（向きや輪郭の違いを強調）
+    final gradL = sobelGradMagU8(grayL, targetW, targetH);
+    final gradR = sobelGradMagU8(grayR, targetW, targetH);
+    final diffGrad = List<double>.generate(diffSsim.length, (i) => (gradL[i] - gradR[i]).abs());
+    final diffGradN = normalizeToUnit(diffGrad);
+    // ピクセル毎に max を取り、構造/色/勾配の差分のうち強いものを採用
+    final diffCombined = List<double>.generate(diffSsim.length, (i) {
+      final a = diffSsim[i];
+      final b = diffColor[i];
+      final c = diffGradN[i] * 0.6; // 勾配寄与はやや控えめ
+      final ab = a > b ? a : b;
+      return ab > c ? ab : c;
+    });
+    final diffN = normalizeToUnit(diffCombined);
 
     final detector = widget.detector ?? FfiCnnDetector();
     await detector.load(Uint8List(0)); // モデル無しでもロード済み扱い
@@ -256,6 +304,31 @@ class _ComparePageState extends State<ComparePage>
       gray[i] = y.clamp(0, 255);
     }
     return gray;
+  }
+
+  Future<Uint8List> _toRgba(ui.Image image, int outW, int outH, {Rect? srcRect}) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final srcSize = Size(image.width.toDouble(), image.height.toDouble());
+    final dstRect = Rect.fromLTWH(0, 0, outW.toDouble(), outH.toDouble());
+    final paint = Paint();
+    final src = srcRect ?? (Offset.zero & srcSize);
+    canvas.drawImageRect(image, src, dstRect, paint);
+    final picture = recorder.endRecording();
+    final scaled = await picture.toImage(outW, outH);
+    final byteData = await scaled.toByteData(format: ui.ImageByteFormat.rawRgba);
+    return byteData!.buffer.asUint8List();
+  }
+
+  List<int> _rgbaToGray(Uint8List rgba) {
+    final out = List<int>.filled(rgba.length ~/ 4, 0);
+    for (var i = 0, p = 0; i < out.length; i++, p += 4) {
+      final r = rgba[p];
+      final g = rgba[p + 1];
+      final b = rgba[p + 2];
+      out[i] = (0.299 * r + 0.587 * g + 0.114 * b).round().clamp(0, 255);
+    }
+    return out;
   }
 
   void _reset() {
@@ -506,8 +579,7 @@ class _ComparePageState extends State<ComparePage>
                     const Icon(Icons.image, size: 64, color: Colors.grey),
                 ],
                 const SizedBox(height: 8),
-                // UI混乱回避のため、解像度表記は非表示にする
-                Text(label),
+                Text('$label  (${dims.width}x${dims.height})'),
                 if (rect != null) ...[
                   const SizedBox(height: 8),
                   Text(

@@ -2,6 +2,7 @@
 //
 // For now this is pure-Dart logic to enable TDD without native deps.
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 class Dimensions {
   final int width;
@@ -111,6 +112,244 @@ class IntRect {
 
   @override
   int get hashCode => Object.hash(left, top, width, height);
+}
+
+/// Compute a robust score for a box: mean of top-[tailRatio] values within the box
+/// from the given scalar map [values] (assumed 0..1), to favor peaky differences.
+double boxTailMeanScore(
+  List<double> values,
+  int width,
+  IntRect box, {
+  double tailRatio = 0.1,
+}) {
+  final list = <double>[];
+  for (var y = box.top; y < box.top + box.height; y++) {
+    final row = y * width;
+    for (var x = box.left; x < box.left + box.width; x++) {
+      list.add(values[row + x]);
+    }
+  }
+  if (list.isEmpty) return 0.0;
+  list.sort();
+  final start = (list.length * (1.0 - tailRatio)).floor().clamp(0, list.length - 1);
+  double sum = 0.0;
+  int cnt = 0;
+  for (var i = start; i < list.length; i++) {
+    sum += list[i];
+    cnt++;
+  }
+  return cnt == 0 ? 0.0 : sum / cnt;
+}
+
+/// Compute a peak-emphasized score for a box: the maximum value inside the box.
+/// 0..1 のスカラーマップ [values] に対して、ボックス内の最大値を返す。
+/// 面積の広さよりも「強い局所ピーク」を優先してランク付けする用途に向く。
+double boxMaxScore(
+  List<double> values,
+  int width,
+  IntRect box,
+) {
+  double best = -1.0;
+  for (var y = box.top; y < box.top + box.height; y++) {
+    final row = y * width;
+    for (var x = box.left; x < box.left + box.width; x++) {
+      final v = values[row + x];
+      if (v > best) {
+        best = v;
+      }
+    }
+  }
+  if (best < 0) return 0.0;
+  return best;
+}
+
+double _percentile(List<double> v, double q) {
+  if (v.isEmpty) return 0.0;
+  final sorted = List<double>.from(v)..sort();
+  final p = (q * (sorted.length - 1)).clamp(0, (sorted.length - 1).toDouble());
+  final i = p.floor();
+  final f = p - i;
+  if (i + 1 >= sorted.length) return sorted[i];
+  return sorted[i] * (1.0 - f) + sorted[i + 1] * f;
+}
+
+/// Refine a bounding box by keeping only high-quantile pixels inside it,
+/// then returning the tightest connected component with highest mean.
+IntRect refineBoxByQuantile(
+  List<double> values,
+  int width,
+  int height,
+  IntRect box, {
+  double quantile = 0.85,
+}) {
+  final vals = <double>[];
+  for (var y = box.top; y < box.top + box.height; y++) {
+    final row = y * width;
+    for (var x = box.left; x < box.left + box.width; x++) {
+      vals.add(values[row + x]);
+    }
+  }
+  if (vals.isEmpty) return box;
+  final thr = _percentile(vals, quantile);
+  final bw = box.width, bh = box.height;
+  final bin = List<int>.filled(bw * bh, 0);
+  for (var y = 0; y < bh; y++) {
+    final row = (box.top + y) * width;
+    for (var x = 0; x < bw; x++) {
+      final v = values[row + (box.left + x)];
+      bin[y * bw + x] = (v >= thr) ? 1 : 0;
+    }
+  }
+  final comps = connectedComponentsBoundingBoxes(bin, bw, bh,
+      eightConnected: true, minArea: 3);
+  if (comps.isEmpty) return box;
+  // choose comp with highest mean
+  double bestScore = -1;
+  IntRect best = comps.first;
+  for (final c in comps) {
+    double sum = 0; int cnt = 0;
+    for (var y = c.top; y < c.top + c.height; y++) {
+      final row = (box.top + y) * width;
+      for (var x = c.left; x < c.left + c.width; x++) {
+        sum += values[row + (box.left + x)];
+        cnt++;
+      }
+    }
+    final m = cnt == 0 ? 0.0 : sum / cnt;
+    if (m > bestScore) { bestScore = m; best = c; }
+  }
+  return IntRect(
+    left: box.left + best.left,
+    top: box.top + best.top,
+    width: best.width,
+    height: best.height,
+  );
+}
+
+bool isElongated(IntRect r, {double ratio = 3.0}) {
+  final w = r.width.toDouble();
+  final h = r.height.toDouble();
+  if (w == 0 || h == 0) return false;
+  final ar = w > h ? w / h : h / w;
+  return ar > ratio;
+}
+
+/// Expand a box by [pad] pixels on each side, and ensure minimum side length
+/// [minSide], clamped to image bounds.
+IntRect expandClampBox(IntRect b, int pad, int minSide, int maxW, int maxH) {
+  int left = b.left - pad;
+  int top = b.top - pad;
+  int right = b.right + pad;
+  int bottom = b.bottom + pad;
+  if (right - left < minSide) {
+    final grow = (minSide - (right - left));
+    left -= grow ~/ 2;
+    right += (grow - grow ~/ 2);
+  }
+  if (bottom - top < minSide) {
+    final grow = (minSide - (bottom - top));
+    top -= grow ~/ 2;
+    bottom += (grow - grow ~/ 2);
+  }
+  if (left < 0) left = 0;
+  if (top < 0) top = 0;
+  if (right > maxW) right = maxW;
+  if (bottom > maxH) bottom = maxH;
+  final w = (right - left).clamp(1, maxW);
+  final h = (bottom - top).clamp(1, maxH);
+  return IntRect(left: left, top: top, width: w, height: h);
+}
+
+/// Compute weighted centroid within [box] using pixels above the given
+/// quantile of values inside the box. Returns null if no valid pixels.
+(double, double)? weightedCentroidByQuantile(
+  List<double> values,
+  int width,
+  int height,
+  IntRect box, {
+  double quantile = 0.8,
+}) {
+  final vals = <double>[];
+  for (var y = box.top; y < box.top + box.height; y++) {
+    final row = y * width;
+    for (var x = box.left; x < box.left + box.width; x++) {
+      vals.add(values[row + x]);
+    }
+  }
+  if (vals.isEmpty) return null;
+  final thr = _percentile(vals, quantile);
+  double sx = 0, sy = 0, sw = 0;
+  for (var y = box.top; y < box.top + box.height; y++) {
+    final row = y * width;
+    for (var x = box.left; x < box.left + box.width; x++) {
+      final wv = values[row + x];
+      if (wv >= thr) {
+        sx += x * wv;
+        sy += y * wv;
+        sw += wv;
+      }
+    }
+  }
+  if (sw == 0) return null;
+  return (sx / sw, sy / sw);
+}
+
+/// Return the coordinates of the maximum value inside [box] considering only
+/// pixels above the given quantile threshold. Falls back to global max inside
+/// the box if no pixels exceed the quantile.
+(int, int)? argmaxByQuantile(
+  List<double> values,
+  int width,
+  int height,
+  IntRect box, {
+  double quantile = 0.8,
+}) {
+  final vals = <double>[];
+  for (var y = box.top; y < box.top + box.height; y++) {
+    final row = y * width;
+    for (var x = box.left; x < box.left + box.width; x++) {
+      vals.add(values[row + x]);
+    }
+  }
+  if (vals.isEmpty) return null;
+  final thr = _percentile(vals, quantile);
+  double best = -1;
+  int bestX = box.left, bestY = box.top;
+  double bestAll = -1; int bestAllX = box.left, bestAllY = box.top;
+  for (var y = box.top; y < box.top + box.height; y++) {
+    final row = y * width;
+    for (var x = box.left; x < box.left + box.width; x++) {
+      final v = values[row + x];
+      if (v > bestAll) { bestAll = v; bestAllX = x; bestAllY = y; }
+      if (v >= thr && v > best) { best = v; bestX = x; bestY = y; }
+    }
+  }
+  if (best < 0) return (bestAllX, bestAllY);
+  return (bestX, bestY);
+}
+
+/// Compute per-pixel color difference map (0..1) from two RGBA buffers (8-bit per channel).
+/// Uses L2 distance in RGB normalized by sqrt(3)*255.
+List<double> colorDiffMapRgba(
+  List<int> rgbaA,
+  List<int> rgbaB,
+  int width,
+  int height,
+) {
+  final n = width * height;
+  if (rgbaA.length != n * 4 || rgbaB.length != n * 4) {
+    throw ArgumentError('RGBA buffers must be width*height*4 bytes');
+  }
+  const norm = 441.67295593; // sqrt(3)*255
+  final out = List<double>.filled(n, 0.0);
+  for (var i = 0, p = 0; i < n; i++, p += 4) {
+    final dr = (rgbaA[p] - rgbaB[p]).abs().toDouble();
+    final dg = (rgbaA[p + 1] - rgbaB[p + 1]).abs().toDouble();
+    final db = (rgbaA[p + 2] - rgbaB[p + 2]).abs().toDouble();
+    final d = math.sqrt(dr * dr + dg * dg + db * db) / norm;
+    out[i] = d.isFinite ? d : 0.0;
+  }
+  return out;
 }
 
 // -----------------------------
@@ -352,6 +591,48 @@ Point2 applyHomography(Point2 p, Homography h) {
   final u = (h.h11 * p.x + h.h12 * p.y + h.h13) / w;
   final v = (h.h21 * p.x + h.h22 * p.y + h.h23) / w;
   return Point2(u, v);
+}
+
+/// Warp an RGBA image by applying homography H to output grid coordinates
+/// (i.e., for each output (u,v) find source (x,y)=H(u,v) in the input) and
+/// sampling bilinearly. Returns a Uint8List of length outW*outH*4.
+Uint8List warpRgbaByHomography(
+  Uint8List src,
+  int srcW,
+  int srcH,
+  Homography h,
+  int outW,
+  int outH,
+) {
+  Uint8List out = Uint8List(outW * outH * 4);
+  double clampd(double v, double lo, double hi) => v < lo ? lo : (v > hi ? hi : v);
+  for (var y = 0; y < outH; y++) {
+    for (var x = 0; x < outW; x++) {
+      final p = applyHomography(Point2(x.toDouble(), y.toDouble()), h);
+      final fx = clampd(p.x, 0.0, srcW - 1.001);
+      final fy = clampd(p.y, 0.0, srcH - 1.001);
+      final x0 = fx.floor();
+      final y0 = fy.floor();
+      final dx = fx - x0;
+      final dy = fy - y0;
+      int idx(int xx, int yy) => ((yy * srcW + xx) * 4);
+      final i00 = idx(x0, y0);
+      final i10 = idx((x0 + 1).clamp(0, srcW - 1), y0);
+      final i01 = idx(x0, (y0 + 1).clamp(0, srcH - 1));
+      final i11 = idx((x0 + 1).clamp(0, srcW - 1), (y0 + 1).clamp(0, srcH - 1));
+      for (var c = 0; c < 4; c++) {
+        final v00 = src[i00 + c].toDouble();
+        final v10 = src[i10 + c].toDouble();
+        final v01 = src[i01 + c].toDouble();
+        final v11 = src[i11 + c].toDouble();
+        final v0 = v00 * (1 - dx) + v10 * dx;
+        final v1 = v01 * (1 - dx) + v11 * dx;
+        final v = v0 * (1 - dy) + v1 * dy;
+        out[(y * outW + x) * 4 + c] = v.round().clamp(0, 255);
+      }
+    }
+  }
+  return out;
 }
 
 // Solve A x = b (square or overdetermined via normal equations) for small sizes.
@@ -794,6 +1075,47 @@ List<double> normalizeToUnit(List<double> values) {
 }
 
 // -----------------------------
+// Gradient magnitude (Sobel) for uint8 grayscale
+// -----------------------------
+
+/// Compute Sobel gradient magnitude for an 8-bit grayscale image.
+/// Returns values normalized to [0,1] using the max magnitude in the image.
+List<double> sobelGradMagU8(List<int> img, int w, int h) {
+  if (img.length != w * h) {
+    throw ArgumentError('image length must be w*h');
+  }
+  final gx = List<double>.filled(w * h, 0);
+  final gy = List<double>.filled(w * h, 0);
+  for (var y = 1; y < h - 1; y++) {
+    for (var x = 1; x < w - 1; x++) {
+      final i = y * w + x;
+      final a = img[i - w - 1].toDouble();
+      final b = img[i - w].toDouble();
+      final c = img[i - w + 1].toDouble();
+      final d = img[i - 1].toDouble();
+      final f = img[i + 1].toDouble();
+      final g = img[i + w - 1].toDouble();
+      final h0 = img[i + w].toDouble();
+      final i0 = img[i + w + 1].toDouble();
+      gx[i] = (c + 2 * f + i0) - (a + 2 * d + g);
+      gy[i] = (g + 2 * h0 + i0) - (a + 2 * b + c);
+    }
+  }
+  double maxMag = 0;
+  final mag = List<double>.filled(w * h, 0);
+  for (var i = 0; i < mag.length; i++) {
+    final m = math.sqrt(gx[i] * gx[i] + gy[i] * gy[i]);
+    mag[i] = m;
+    if (m > maxMag) maxMag = m;
+  }
+  if (maxMag <= 0) return List<double>.filled(w * h, 0);
+  for (var i = 0; i < mag.length; i++) {
+    mag[i] = mag[i] / maxMag;
+  }
+  return mag;
+}
+
+// -----------------------------
 // Thresholding & Connected Components
 // -----------------------------
 
@@ -801,6 +1123,144 @@ List<double> normalizeToUnit(List<double> values) {
 /// Values >= threshold become 1, otherwise 0.
 List<int> thresholdBinary(List<double> values, double threshold) {
   return values.map((v) => v >= threshold ? 1 : 0).toList();
+}
+
+/// Compute Otsu's threshold on [values] assumed to be in [0.0, 1.0].
+/// Returns a threshold in [0.0, 1.0]. Uses 256-bin histogram.
+double otsuThreshold01(List<double> values, {int bins = 256}) {
+  if (values.isEmpty) return 0.5;
+  final hist = List<int>.filled(bins, 0);
+  for (final v in values) {
+    var x = v;
+    if (x.isNaN || x.isInfinite) continue;
+    if (x < 0) x = 0;
+    if (x > 1) x = 1;
+    final idx = (x * (bins - 1)).round();
+    hist[idx]++;
+  }
+  final total = values.length;
+  double sumAll = 0;
+  for (var i = 0; i < bins; i++) {
+    sumAll += i * hist[i];
+  }
+  int wB = 0;
+  double sumB = 0;
+  double maxVar = -1;
+  int thresholdIdx = 0;
+  for (var i = 0; i < bins; i++) {
+    wB += hist[i];
+    if (wB == 0) continue;
+    final wF = total - wB;
+    if (wF == 0) break;
+    sumB += i * hist[i];
+    final mB = sumB / wB;
+    final mF = (sumAll - sumB) / wF;
+    final betweenVar = wB * wF * (mB - mF) * (mB - mF);
+    if (betweenVar > maxVar) {
+      maxVar = betweenVar;
+      thresholdIdx = i;
+    }
+  }
+  final thr = thresholdIdx / (bins - 1);
+  return thr.isFinite ? thr : 0.5;
+}
+
+/// Morphological dilation on a binary image (0/1). Returns a new list.
+List<int> dilateBinary(List<int> binary, int width, int height,
+    {int iterations = 1}) {
+  if (binary.length != width * height) {
+    throw ArgumentError('binary length must equal width*height');
+  }
+  if (iterations <= 0) return List<int>.from(binary);
+  List<int> cur = List<int>.from(binary);
+  for (var it = 0; it < iterations; it++) {
+    final out = List<int>.from(cur);
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
+        final idx = y * width + x;
+        if (cur[idx] == 1) {
+          out[idx] = 1;
+          continue;
+        }
+        bool any = false;
+        for (var dy = -1; dy <= 1 && !any; dy++) {
+          final yy = y + dy;
+          if (yy < 0 || yy >= height) continue;
+          for (var dx = -1; dx <= 1; dx++) {
+            final xx = x + dx;
+            if (xx < 0 || xx >= width) continue;
+            if (cur[yy * width + xx] == 1) {
+              any = true;
+              break;
+            }
+          }
+        }
+        out[idx] = any ? 1 : out[idx];
+      }
+    }
+    cur = out;
+  }
+  return cur;
+}
+
+/// Hysteresis thresholding (Canny-style) on a scalar map in [0,1].
+/// Pixels >= high become strong seeds. Pixels >= low connected (8-neigh) to any strong seed are kept.
+List<int> hysteresisBinary(
+  List<double> values,
+  int width,
+  int height, {
+  required double high,
+  required double low,
+}) {
+  if (values.length != width * height) {
+    throw ArgumentError('values length must equal width*height');
+  }
+  if (low > high) {
+    final t = low;
+    low = high;
+    high = t;
+  }
+  final out = List<int>.filled(values.length, 0);
+  final visited = List<bool>.filled(values.length, false);
+  final q = <int>[];
+
+  int idx(int x, int y) => y * width + x;
+
+  // seed with strong pixels
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
+      final i = idx(x, y);
+      final v = values[i];
+      if (v >= high) {
+        out[i] = 1;
+        visited[i] = true;
+        q.add(i);
+      }
+    }
+  }
+
+  // BFS to include weak pixels connected to strong
+  while (q.isNotEmpty) {
+    final i = q.removeLast();
+    final x = i % width;
+    final y = i ~/ width;
+    for (var dy = -1; dy <= 1; dy++) {
+      for (var dx = -1; dx <= 1; dx++) {
+        if (dx == 0 && dy == 0) continue;
+        final xx = x + dx;
+        final yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= width || yy >= height) continue;
+        final j = idx(xx, yy);
+        if (visited[j]) continue;
+        visited[j] = true;
+        if (values[j] >= low) {
+          out[j] = 1;
+          q.add(j);
+        }
+      }
+    }
+  }
+  return out;
 }
 
 /// Find connected components' bounding boxes in a binary image (0/1).
@@ -887,4 +1347,59 @@ List<IntRect> connectedComponentsBoundingBoxes(
   }
 
   return boxes;
+}
+
+// -----------------------------
+// Peak detection (local maxima)
+// -----------------------------
+
+/// Find local maxima in a scalar map using a square neighborhood of given radius.
+/// Returns list of (x, y, score) sorted by score descending, filtered by threshold.
+List<(int, int, double)> localMaxima2d(
+  List<double> values,
+  int width,
+  int height, {
+  int radius = 3,
+  double threshold = 0.5,
+  int maxFeatures = 10,
+}) {
+  final out = <(int, int, double)>[];
+  for (var y = radius; y < height - radius; y++) {
+    for (var x = radius; x < width - radius; x++) {
+      final s = values[y * width + x];
+      if (s < threshold) continue;
+      var isMax = true;
+      for (var yy = -radius; yy <= radius && isMax; yy++) {
+        for (var xx = -radius; xx <= radius; xx++) {
+          if (xx == 0 && yy == 0) continue;
+          if (values[(y + yy) * width + (x + xx)] > s) {
+            isMax = false;
+            break;
+          }
+        }
+      }
+      if (isMax) out.add((x, y, s));
+    }
+  }
+  out.sort((a, b) => b.$3.compareTo(a.$3));
+  if (out.length > maxFeatures) return out.sublist(0, maxFeatures);
+  return out;
+}
+
+List<IntRect> boxesFromPeaks(
+  List<(int, int, double)> peaks,
+  int width,
+  int height, {
+  int side = 12,
+}) {
+  final out = <IntRect>[];
+  final half = side ~/ 2;
+  for (final (x, y, _) in peaks) {
+    final left = (x - half).clamp(0, width - 1);
+    final top = (y - half).clamp(0, height - 1);
+    final w = (side).clamp(1, width - left);
+    final h = (side).clamp(1, height - top);
+    out.add(IntRect(left: left, top: top, width: w, height: h));
+  }
+  return out;
 }

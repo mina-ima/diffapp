@@ -54,6 +54,7 @@ void main() {
       detectText: true,
       enableSound: false,
       precision: 5,
+      minAreaPercent: Settings.defaultMinAreaPercent,
     );
 
     await tester.pumpWidget(

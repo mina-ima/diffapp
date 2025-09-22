@@ -43,8 +43,8 @@ class ResultPage extends StatelessWidget {
             else
               Builder(builder: (context) {
                 // 表示中件数（クロップ内）を算出
-                const srcW = 64;
-                const srcH = 64;
+                const srcW = 128;
+                const srcH = 128;
                 final toNormX = leftNorm.width / srcW;
                 final toNormY = leftNorm.height / srcH;
                 final viewport = selectedLeftRect ??
@@ -141,8 +141,8 @@ class _DetectionOverlay extends StatelessWidget {
         }
 
         // 64x64 → 正規化寸法 → 表示スケール s（さらにクロップ原点を原点に）
-        const srcW = 64;
-        const srcH = 64;
+        const srcW = 128;
+        const srcH = 128;
         final toNormX = norm.width / srcW;
         final toNormY = norm.height / srcH;
         final cropLeft = targetRect.left;
@@ -192,7 +192,7 @@ class _DetectionOverlay extends StatelessWidget {
                           child: IgnorePointer(
                             child: Container(
                               decoration: BoxDecoration(
-                                border: Border.all(color: Colors.redAccent, width: 2),
+                                border: Border.all(color: Colors.redAccent, width: 4),
                                 color: Colors.transparent,
                               ),
                             ),
