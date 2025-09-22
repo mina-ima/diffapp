@@ -56,10 +56,11 @@ class MockCnnDetector implements CnnDetector {
   }
 
   double _thresholdForPrecision(int p) {
-    // precision:1..5 => threshold 0.9 .. 0.8 (higher precision = more sensitive)
+    // precision:1..5 => threshold 0.85 .. 0.65 程度（高精度ほどしきい値を下げて検出しやすく）
     if (p < Settings.minPrecision) p = Settings.minPrecision;
     if (p > Settings.maxPrecision) p = Settings.maxPrecision;
-    return 0.9 - (p - 1) * 0.025;
+    final t = 0.9 - (p - 1) * 0.05; // p=3 -> 0.8, p=5 -> 0.7
+    return t.clamp(0.6, 0.9);
   }
 
   List<DetectionCategory> _enabledCategories(Settings s) {
@@ -142,25 +143,10 @@ class MockCnnDetector implements CnnDetector {
       }
     }
 
-    // Fallback: if nothing detected, try adaptive threshold + dilation with smaller min area.
+    // Fallback: if nothing detected, try adaptive threshold + dilation even if全体が弱い場合
     if (selected.isEmpty) {
-      // respect precision threshold semantics: if nothing is above the high threshold,
-      // do not try adaptive fallback (prevents low precision from detecting).
-      bool anyAboveHigh = false;
-      for (final v in diffMap) {
-        if (v >= thr) {
-          anyAboveHigh = true;
-          break;
-        }
-      }
-      if (!anyAboveHigh) {
-        // return empty detections
-        final cats = _enabledCategories(settings);
-        // keep API behavior: just return empty list
-        return const <Detection>[];
-      }
       final thrOtsu = otsuThreshold01(diffMap);
-      final thr2 = (thrOtsu + thr) * 0.5; // blend to avoid too low threshold
+      final thr2 = (thrOtsu + thr) * 0.5; // 固定値よりも画像分布に寄せる
       final low2 = (thr2 * 0.8).clamp(0.0, 1.0);
       final bin2 = hysteresisBinary(diffMap, width, height, high: thr2, low: low2);
       final bin2Dil = dilateBinary(bin2, width, height, iterations: 1);
@@ -248,8 +234,9 @@ class MockCnnDetector implements CnnDetector {
     // If too few boxes, supplement with peak-based proposals
     if (out.length < 3) {
       final side = (width * 0.12).round();
+      final thrPeak = math.max(otsuThreshold01(diffMap), thr * 0.7);
       final peaks = localMaxima2d(diffMap, width, height,
-          radius: 3, threshold: thr, maxFeatures: 5);
+          radius: 3, threshold: thrPeak, maxFeatures: 5);
       final props = boxesFromPeaks(peaks, width, height, side: side);
       for (final p in props) {
         bool overlaps = false;
