@@ -4,7 +4,7 @@ class Settings {
   static const int minPrecision = 1;
   static const int maxPrecision = 5;
   static const int defaultPrecision = 3; // 「普通精度」
-  static const int defaultMinAreaPercent = 5; // 検出の最小面積（解析空間比）
+  static const int defaultMinAreaPercent = 2; // 検出の最小面積（解析空間比・小さな色違いも拾う）
 
   final bool detectColor;
   final bool detectShape;

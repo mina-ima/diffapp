@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:math' as math;
 
 import 'image_pipeline.dart';
 import 'settings.dart';

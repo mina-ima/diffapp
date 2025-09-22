@@ -236,7 +236,7 @@ class _ComparePageState extends State<ComparePage>
     final geom = List<double>.generate(diffSsim.length, (i) => math.sqrt(diffSsim[i] * diffColor[i]));
     final diffCombined = List<double>.generate(diffSsim.length, (i) {
       final s = diffSsim[i] * 0.7 + diffGradN[i] * 0.3;
-      final c = diffColor[i] * 0.9; // 色の寄与をやや強めに
+      final c = diffColor[i] * 1.2; // 色の寄与をさらに強めに
       final g = geom[i] * 1.1;      // 両方高いピクセルを強調
       final m1 = s > c ? s : c;
       return m1 > g ? m1 : g;
@@ -249,7 +249,7 @@ class _ComparePageState extends State<ComparePage>
     });
     final edgeSuppression = List<double>.generate(edgeCommon.length, (i) => 1.0 - edgeCommon[i]);
     final diffFinal = List<double>.generate(diffCombined.length, (i) {
-      final mask = 0.6 + 0.4 * edgeSuppression[i]; // 共通エッジでは~0.6倍、フラット領域では1.0倍
+      final mask = 0.75 + 0.25 * edgeSuppression[i]; // 共通エッジでは~0.75倍にとどめる
       return diffCombined[i] * mask;
     });
     final diffN = normalizeToUnit(diffFinal);
