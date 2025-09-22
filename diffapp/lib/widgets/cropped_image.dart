@@ -35,7 +35,14 @@ class CroppedImage extends StatelessWidget {
 
   Future<ui.Image> _decode() async {
     final data = bytes ?? await File(path!).readAsBytes();
-    final codec = await ui.instantiateImageCodec(data);
+    // 大きな画像をフル解像度でデコードすると端末によってはメモリ不足で
+    // 表示できないことがあるため、表示基準（normalizedWidth）に合わせて
+    // デコード段階でダウンサンプルする。
+    // 高さは省略してアスペクト比を維持する。
+    final codec = await ui.instantiateImageCodec(
+      data,
+      targetWidth: normalizedWidth,
+    );
     final frame = await codec.getNextFrame();
     return frame.image;
   }

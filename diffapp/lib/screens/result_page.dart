@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:diffapp/image_pipeline.dart';
 import 'package:diffapp/screens/image_select_page.dart';
+import 'package:diffapp/widgets/cropped_image.dart';
 
 class ResultPage extends StatelessWidget {
   final bool noDifferences;
@@ -139,24 +140,7 @@ class _DetectionOverlay extends StatelessWidget {
           viewH = targetRect.height * s;
         }
 
-        Widget imageChild;
-        if (image.bytes != null) {
-          imageChild = Image.memory(image.bytes!, fit: BoxFit.fill);
-        } else if (image.path != null) {
-          imageChild = Image.file(File(image.path!), fit: BoxFit.fill);
-        } else {
-          // プレビュー用の画像データが無い場合でも、表示領域を確保して視認できるようにする
-          imageChild = Container(
-            color: Colors.black12,
-            alignment: Alignment.center,
-            child: const Text(
-              'プレビューなし',
-              style: TextStyle(color: Colors.black54),
-            ),
-          );
-        }
-
-        // 64x64 → 正規化寸法 → 表示スケールs（さらにクロップ原点を原点に）
+        // 64x64 → 正規化寸法 → 表示スケール s（さらにクロップ原点を原点に）
         const srcW = 64;
         const srcH = 64;
         final toNormX = norm.width / srcW;
@@ -171,30 +155,29 @@ class _DetectionOverlay extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Transform(
-                    alignment: Alignment.topLeft,
-                    // CroppedImage と同じ表示：先に -crop を平行移動し、その後に拡大
-                    transform: Matrix4.identity()
-                      ..translate(-cropLeft.toDouble(), -cropTop.toDouble())
-                      ..scale(s, s),
-                    child: SizedBox(
-                      width: norm.width.toDouble(),
-                      height: norm.height.toDouble(),
-                      child: FittedBox(
-                        fit: BoxFit.fill,
-                        alignment: Alignment.topLeft,
-                        child: SizedBox(
-                          width: norm.width.toDouble(),
-                          height: norm.height.toDouble(),
-                          child: imageChild,
-                        ),
-                      ),
-                    ),
+                // 画像（bytes優先）。結果ページでも Compare と同じ描画方式を用いて確実に表示する
+                if (image.bytes == null && image.path == null)
+                  // プレビュー欠如時のフォールバック（Nodeテストがこの文言とレイアウトを検証）
+                  Container(
+                    alignment: Alignment.center,
+                    child: const Text('プレビューなし'),
+                  )
+                else
+                  CroppedImage(
+                    bytes: image.bytes,
+                    path: image.path,
+                    originalWidth: image.width,
+                    originalHeight: image.height,
+                    normalizedWidth: norm.width,
+                    normalizedHeight: norm.height,
+                    rect: targetRect,
+                    // この高さを渡すことで内部のスケールと本Widgetのスケールを一致させる
+                    preferredViewportHeight: viewH,
+                    viewportKey: const Key('result-image-viewport'),
+                    imageKey: const Key('result-image'),
                   ),
-                ),
-                // 矩形オーバーレイ
+
+                // 検出矩形オーバーレイ
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Stack(
