@@ -57,6 +57,7 @@ class _ComparePageState extends State<ComparePage>
   late final AnimationController _pulse;
   late final Animation<double> _scale;
   bool _showCroppedPreviews = false;
+  late Settings _settings; // 画面内で現在の検査設定を保持
 
   Future<void> _startDetection(BuildContext context) async {
     // 効果音
@@ -195,7 +196,8 @@ class _ComparePageState extends State<ComparePage>
       diffN,
       targetW,
       targetH,
-      settings: widget.settings ?? Settings.initial(),
+      // 直近で保存された設定を使用
+      settings: _settings,
       maxOutputs: 20,
       iouThreshold: 0.3,
     );
@@ -371,11 +373,19 @@ class _ComparePageState extends State<ComparePage>
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () async {
-                      // 設定ページへ（ホームの歯車と同じ遷移先）
-                      await Navigator.of(context).push<Settings>(
+                      // 設定ページへ遷移し、レ点で戻った値を即時反映
+                      final result = await Navigator.of(context).push<Settings>(
                         MaterialPageRoute(
-                            builder: (_) => SettingsPage(initial: Settings.initial())),
+                          builder: (_) => SettingsPage(initial: _settings),
+                        ),
                       );
+                      if (!mounted) return;
+                      if (result != null) {
+                        setState(() => _settings = result);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('設定を保存しました')),
+                        );
+                      }
                     },
                     icon: const Icon(Icons.tune),
                     label: const Text('検査精度設定'),
@@ -437,6 +447,8 @@ class _ComparePageState extends State<ComparePage>
     // 初期矩形（テストや再入場時向けのフック）
     _leftRect = widget.initialLeftRect ?? _leftRect;
     _rightRect = widget.initialRightRect ?? _rightRect;
+    // 設定初期値（ホームから渡されたものがあればそれを使用）
+    _settings = widget.settings ?? Settings.initial();
   }
 
   @override
