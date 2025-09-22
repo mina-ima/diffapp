@@ -114,6 +114,36 @@ class IntRect {
   int get hashCode => Object.hash(left, top, width, height);
 }
 
+/// Simple box blur for 8-bit grayscale image.
+/// radius=1 -> 3x3 の平均化で微小なズレノイズを低減する。
+List<int> boxBlurU8(List<int> img, int w, int h, {int radius = 1}) {
+  if (img.length != w * h) {
+    throw ArgumentError('image length must equal width*height');
+  }
+  if (radius <= 0) return List<int>.from(img);
+  final out = List<int>.filled(w * h, 0);
+  final r = radius;
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      int sum = 0;
+      int cnt = 0;
+      for (var dy = -r; dy <= r; dy++) {
+        final yy = y + dy;
+        if (yy < 0 || yy >= h) continue;
+        final row = yy * w;
+        for (var dx = -r; dx <= r; dx++) {
+          final xx = x + dx;
+          if (xx < 0 || xx >= w) continue;
+          sum += img[row + xx];
+          cnt++;
+        }
+      }
+      out[y * w + x] = (sum / (cnt == 0 ? 1 : cnt)).round().clamp(0, 255);
+    }
+  }
+  return out;
+}
+
 /// Compute a robust score for a box: mean of top-[tailRatio] values within the box
 /// from the given scalar map [values] (assumed 0..1), to favor peaky differences.
 double boxTailMeanScore(

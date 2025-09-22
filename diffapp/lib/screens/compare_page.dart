@@ -10,6 +10,7 @@ import 'package:diffapp/screens/settings_page.dart';
 import 'package:diffapp/screens/result_page.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 import 'package:diffapp/widgets/cropped_image.dart';
 import 'package:diffapp/cnn_detection.dart';
 import 'package:diffapp/features.dart';
@@ -219,8 +220,11 @@ class _ComparePageState extends State<ComparePage>
       // アライン失敗時はフォールバック（無視）
     }
 
+    // SSIM の前に軽いボックスブラーを適用し、1pxレベルのエッジずれを抑制
+    final blurL = boxBlurU8(grayL, targetW, targetH, radius: 1);
+    final blurR = boxBlurU8(grayR, targetW, targetH, radius: 1);
     // SSIM差分 + 色差分 + 勾配差分 を統合
-    final ssim = computeSsimMapUint8(grayL, grayR, targetW, targetH, windowRadius: 0);
+    final ssim = computeSsimMapUint8(blurL, blurR, targetW, targetH, windowRadius: 0);
     final diffSsim = ssim.map((v) => 1.0 - v).toList();
     final diffColor = colorDiffMapRgba(rgbaL, rgbaR, targetW, targetH);
     // 勾配マップの差分（向きや輪郭の違いを強調）
@@ -228,13 +232,14 @@ class _ComparePageState extends State<ComparePage>
     final gradR = sobelGradMagU8(grayR, targetW, targetH);
     final diffGrad = List<double>.generate(diffSsim.length, (i) => (gradL[i] - gradR[i]).abs());
     final diffGradN = normalizeToUnit(diffGrad);
-    // ピクセル毎に max を取り、構造/色/勾配の差分のうち強いものを採用
+    // 構造(SSIM)と色の両方が高い場所を持ち上げる（幾何平均）+ 妥当な線形ブレンド
+    final geom = List<double>.generate(diffSsim.length, (i) => math.sqrt(diffSsim[i] * diffColor[i]));
     final diffCombined = List<double>.generate(diffSsim.length, (i) {
-      final a = diffSsim[i];
-      final b = diffColor[i];
-      final c = diffGradN[i] * 0.6; // 勾配寄与はやや控えめ
-      final ab = a > b ? a : b;
-      return ab > c ? ab : c;
+      final s = diffSsim[i] * 0.7 + diffGradN[i] * 0.3;
+      final c = diffColor[i] * 0.9; // 色の寄与をやや強めに
+      final g = geom[i] * 1.1;      // 両方高いピクセルを強調
+      final m1 = s > c ? s : c;
+      return m1 > g ? m1 : g;
     });
     final diffN = normalizeToUnit(diffCombined);
 
