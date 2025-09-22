@@ -241,7 +241,18 @@ class _ComparePageState extends State<ComparePage>
       final m1 = s > c ? s : c;
       return m1 > g ? m1 : g;
     });
-    final diffN = normalizeToUnit(diffCombined);
+    // 画像間で共通して強いエッジ（min(gradL,gradR)）は誤検出の温床になりやすいので抑制
+    final edgeCommon = List<double>.generate(diffCombined.length, (i) {
+      final a = gradL[i];
+      final b = gradR[i];
+      return a < b ? a : b;
+    });
+    final edgeSuppression = List<double>.generate(edgeCommon.length, (i) => 1.0 - edgeCommon[i]);
+    final diffFinal = List<double>.generate(diffCombined.length, (i) {
+      final mask = 0.6 + 0.4 * edgeSuppression[i]; // 共通エッジでは~0.6倍、フラット領域では1.0倍
+      return diffCombined[i] * mask;
+    });
+    final diffN = normalizeToUnit(diffFinal);
 
     final detector = widget.detector ?? FfiCnnDetector();
     await detector.load(Uint8List(0)); // モデル無しでもロード済み扱い
