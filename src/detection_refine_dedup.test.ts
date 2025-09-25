@@ -7,5 +7,7 @@ describe('MockCnnDetector の重複抑制とスコア再評価', () => {
     expect(source).toMatch(/_refineScoreTailMean\(/);
     expect(source).toMatch(/_runNms\(/);
     expect(source).toMatch(/secondPassIndices/);
+    expect(source).toMatch(/remainingSlots/);
+    expect(source).toMatch(/localMaxima2d\(/);
   });
 });

@@ -257,21 +257,25 @@ class MockCnnDetector implements CnnDetector {
         ));
       }
     }
-    // If too few boxes, supplement with peak-based proposals
-    if (out.length < 3) {
+    // Peak proposals: regardlessの件数で上位ピークを補完（最大5件 or maxOutputs まで）
+    final remainingSlots = math.max(0, maxOutputs - out.length);
+    if (remainingSlots > 0) {
       final side = (width * 0.12).round();
       final thrPeak = math.max(otsuThreshold01(diffMap), thr * 0.7);
+      final peakLimit = math.min(8, remainingSlots + 3);
       final peaks = localMaxima2d(diffMap, width, height,
-          radius: 3, threshold: thrPeak, maxFeatures: 5);
+          radius: 3, threshold: thrPeak, maxFeatures: peakLimit);
       final props = boxesFromPeaks(peaks, width, height, side: side);
+      var added = 0;
       for (final p in props) {
         bool overlaps = false;
         for (final d in out) {
-          if (iou(d.box, p) > 0.3) { overlaps = true; break; }
+          if (iou(d.box, p) > 0.35) { overlaps = true; break; }
         }
         if (!overlaps) {
           out.add(Detection(box: p, score: 1.0, category: cats[out.length % cats.length]));
-          if (out.length >= 3) break;
+          added++;
+          if (out.length >= maxOutputs || added >= remainingSlots) break;
         }
       }
     }
