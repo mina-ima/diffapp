@@ -417,11 +417,24 @@ List<double> colorDiffMapRgbaRobust(
     final cr2 = r2 / s2, cg2 = g2 / s2, cb2 = b2 / s2;
     final dcr = cr1 - cr2, dcg = cg1 - cg2, dcb = cb1 - cb2;
     final dChroma = math.sqrt(dcr * dcr + dcg * dcg + dcb * dcb) / math.sqrt(3);
-    // Blend: emphasize chroma to be robust; keep some raw for strong color shifts
-    final d = (dChroma * 0.7 + dRgb * 0.3).clamp(0.0, 1.0);
+    final sat1 = _saturation(r1, g1, b1);
+    final sat2 = _saturation(r2, g2, b2);
+    final satAvgNorm = ((sat1 + sat2) * 0.5) / 255.0;
+    final satAvg = satAvgNorm.clamp(0.0, 1.0);
+    final chromaEnergy = math.sqrt(satAvg.toDouble());
+    final wChroma = 0.18 + 0.82 * chromaEnergy;
+    final wSat = 0.18 + 0.62 * chromaEnergy;
+    final satDelta = (sat1 - sat2).abs() / 255.0;
+    final d = (dChroma * wChroma + dRgb * 0.22 + satDelta * wSat).clamp(0.0, 1.0);
     out[i] = d.isFinite ? d : 0.0;
   }
   return out;
+}
+
+double _saturation(double r, double g, double b) {
+  final maxC = math.max(r, math.max(g, b));
+  final minC = math.min(r, math.min(g, b));
+  return maxC - minC;
 }
 
 // -----------------------------
