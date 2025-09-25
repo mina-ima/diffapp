@@ -2,9 +2,9 @@ import 'dart:convert';
 
 class Settings {
   static const int minPrecision = 1;
-  static const int maxPrecision = 5;
+  static const int maxPrecision = 7;
   static const int defaultPrecision = 3; // 「普通精度」
-  static const int defaultMinAreaPercent = 2; // 検出の最小面積（解析空間比・小さな色違いも拾う）
+  static const int defaultMinAreaPercent = 5; // 検出の最小面積（解析空間比・小さな色違いも拾う）
 
   final bool detectColor;
   final bool detectShape;
@@ -12,7 +12,7 @@ class Settings {
   final bool detectSize;
   final bool detectText;
   final bool enableSound;
-  final int precision; // 1..5
+  final int precision; // 1..7
   final int minAreaPercent; // 0..100 (% of analysis area)
 
   const Settings({

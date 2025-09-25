@@ -53,23 +53,31 @@ class ComparePage extends StatefulWidget {
 class _ComparePageState extends State<ComparePage>
     with TickerProviderStateMixin {
   static const int _alignmentPasses = 2;
+  static const int _analysisSize = 256;
+  static const int _alignmentSize = 384; // 高精度アライン用ワークサイズ
   IntRect? _leftRect;
   IntRect? _rightRect;
   late final Dimensions _leftNorm;
   late final Dimensions _rightNorm;
   late final AnimationController _pulse;
   late final Animation<double> _scale;
-  bool _showCroppedPreviews = false;
   late Settings _settings; // 画面内で現在の検査設定を保持
+  Future<void>? _leftPreparation;
+  Uint8List? _leftAlignmentRgba;
+  List<int>? _leftAlignmentGray;
+  List<Keypoint>? _leftKeypoints;
+  List<List<int>>? _leftDescriptors;
 
   Future<void> _startDetection(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     // 効果音
     if (widget.enableSound) {
       Sfx.instance.play('start');
     }
     // モデル読込失敗をシミュレート（テスト用）
     if (widget.simulateModelLoadFailure) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('けんさに しっぱいしました。もういちどためしてね')),
       );
       return;
@@ -77,7 +85,7 @@ class _ComparePageState extends State<ComparePage>
 
     // タイムアウトをシミュレート（テスト用）
     if (widget.simulateTimeout) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('じかんぎれです。もういちどためしてね')),
       );
       return;
@@ -89,7 +97,7 @@ class _ComparePageState extends State<ComparePage>
         throw Exception('simulated internal error');
       } catch (e, st) {
         AppLog.instance.record(e, st, tag: 'detection');
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text('エラーが おきました。もういちどためしてね')),
         );
       }
@@ -105,18 +113,25 @@ class _ComparePageState extends State<ComparePage>
       // 失敗時はゼロ件として扱う
       results = <IntRect>[];
     }
+    if (!mounted) {
+      return;
+    }
     // 結果メッセージ
     if (results.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('ちがいは みつかりませんでした')),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text('検出数: ${results.length}')),
       );
     }
     // 検査結果ページへ遷移（検出矩形と表示寸法・元画像を渡す）
-    Navigator.of(context)
+    if (!mounted) {
+      return;
+    }
+
+    navigator
         .push<bool>(
           MaterialPageRoute(
             builder: (_) => ResultPage(
@@ -137,84 +152,75 @@ class _ComparePageState extends State<ComparePage>
   }
 
   Future<List<IntRect>> _runDetection() async {
-    // 画像からピクセル取得（bytes優先、なければ path）
-    final imgL = await _decodeAndScaleTo(_getBytesOrNull(widget.left), widget.left.path);
-    final imgR = await _decodeAndScaleTo(_getBytesOrNull(widget.right), widget.right.path);
-    if (imgL == null || imgR == null) {
+    final overrideDetector = widget.detector;
+    if (overrideDetector != null) {
+      // テスト差し替え用の検出器では高負荷な前処理を行わず、設定伝搬のみ確認する。
+      if (!overrideDetector.isLoaded) {
+        await overrideDetector.load(Uint8List(0));
+      }
+      overrideDetector.detectFromDiffMap(
+        const <double>[0.0],
+        1,
+        1,
+        settings: _settings,
+        maxOutputs: 1,
+        iouThreshold: 0.3,
+      );
+      return const <IntRect>[];
+    }
+
+    await (_leftPreparation ??= _prepareLeftAlignment());
+
+    final rgbaLeftWork = _leftAlignmentRgba;
+    final grayLeftWork = _leftAlignmentGray;
+    final leftKeypoints = _leftKeypoints;
+    final leftDescriptors = _leftDescriptors;
+    if (rgbaLeftWork == null ||
+        grayLeftWork == null ||
+        leftKeypoints == null ||
+        leftDescriptors == null ||
+        leftKeypoints.isEmpty) {
       return <IntRect>[];
     }
-    // 同一サイズに揃える（64x64固定）。選択範囲があればその矩形のみを切り出して解析。
-    const targetW = 128;
-    const targetH = 128;
 
-    Rect? leftCropSrc;
-    Rect? rightCropSrc;
-    double leftOffsetX = 0;
-    double leftOffsetY = 0;
-    if (_leftRect != null) {
-      // 左: 正規化空間(_leftNorm)での矩形を実画像ピクセル空間へ変換
-      final sxL = imgL.width / _leftNorm.width;
-      final syL = imgL.height / _leftNorm.height;
-      leftCropSrc = Rect.fromLTWH(
-        _leftRect!.left * sxL,
-        _leftRect!.top * syL,
-        _leftRect!.width * sxL,
-        _leftRect!.height * syL,
-      );
-
-      // 右: 右の正規化空間へマッピング（_rightRect が未設定なら変換して得る）
-      final mappedRight = _rightRect ?? scaleRectBetweenSpaces(
-        _leftRect!,
-        _leftNorm.width,
-        _leftNorm.height,
-        _rightNorm.width,
-        _rightNorm.height,
-      );
-      final sxR = imgR.width / _rightNorm.width;
-      final syR = imgR.height / _rightNorm.height;
-      rightCropSrc = Rect.fromLTWH(
-        mappedRight.left * sxR,
-        mappedRight.top * syR,
-        mappedRight.width * sxR,
-        mappedRight.height * syR,
-      );
-
-      // 検出ボックスは targetW x targetH のフル空間に対する座標で返すため、
-      // クロップ領域の原点オフセット（target系）を加算して戻す。
-      leftOffsetX = _leftRect!.left * (targetW / _leftNorm.width);
-      leftOffsetY = _leftRect!.top * (targetH / _leftNorm.height);
+    final imgR = await _decodeAndScaleTo(_getBytesOrNull(widget.right), widget.right.path);
+    if (imgR == null) {
+      return <IntRect>[];
     }
 
-    final rgbaL = await _toRgba(imgL, targetW, targetH, srcRect: leftCropSrc);
-    final rgbaR0 = await _toRgba(imgR, targetW, targetH, srcRect: rightCropSrc);
-    var rgbaR = rgbaR0;
-    // グレースケールもクロップ矩形を正しく適用した上で計算する
-    var grayL = await _toGrayscale(imgL, targetW, targetH, srcRect: leftCropSrc);
-    var grayR = await _toGrayscale(imgR, targetW, targetH, srcRect: rightCropSrc);
+    final rgbaRightWork = await _toRgba(
+      imgR,
+      _alignmentSize,
+      _alignmentSize,
+      quality: ui.FilterQuality.high,
+    );
+    final grayRightWork = _rgbaToGray(rgbaRightWork);
+    var workingRightRgba = rgbaRightWork;
+    var workingRightGray = grayRightWork;
 
     // 画像の微小ズレを多段で補正: Harris+BRIEFで対応点→ホモグラフィ/相似変換推定
     try {
-      final grayR0 = List<int>.from(grayR);
+      final grayRightOriginal = List<int>.from(grayRightWork);
+      final rgbaRightOriginal = Uint8List.fromList(rgbaRightWork);
       Homography? alignmentHomography;
-      Uint8List alignedRgba = rgbaR0;
-      List<int> alignedGray = grayR0;
+      Uint8List alignedRgba = rgbaRightWork;
+      List<int> alignedGray = grayRightWork;
 
       for (var pass = 0; pass < _alignmentPasses; pass++) {
-        final kLPass = detectHarrisKeypointsU8(grayL, targetW, targetH,
-            responseThreshold: 2e5, maxFeatures: 800);
-        final kRPass = detectHarrisKeypointsU8(alignedGray, targetW, targetH,
+        final kLPass = leftKeypoints;
+        final kRPass = detectHarrisKeypointsU8(alignedGray, _alignmentSize, _alignmentSize,
             responseThreshold: 2e5, maxFeatures: 800);
         if (kLPass.length < 8 || kRPass.length < 8) {
           break;
         }
-        final dLPass = computeBriefDescriptors(grayL, targetW, targetH, kLPass);
-        final dRPass = computeBriefDescriptors(alignedGray, targetW, targetH, kRPass);
+        final dLPass = leftDescriptors;
+        final dRPass = computeBriefDescriptors(alignedGray, _alignmentSize, _alignmentSize, kRPass);
         final matches = matchDescriptorsHammingRatioCross(
           dLPass,
           dRPass,
-          ratio: 0.82,
+          ratio: 0.76,
           crossCheck: true,
-          maxMatches: 1000,
+          maxMatches: 900,
         );
         if (matches.isEmpty) {
           break;
@@ -235,8 +241,8 @@ class _ComparePageState extends State<ComparePage>
               src,
               dst,
               iterations: 600,
-              inlierThreshold: 1.5,
-              minInliers: 16,
+              inlierThreshold: 1.1,
+              minInliers: 20,
             ).homography;
           } catch (_) {
             stepHomography = null;
@@ -254,38 +260,99 @@ class _ComparePageState extends State<ComparePage>
             : composeHomography(alignmentHomography, stepHomography);
 
         final warped = warpRgbaByHomography(
-          rgbaR0,
-          targetW,
-          targetH,
+          rgbaRightOriginal,
+          _alignmentSize,
+          _alignmentSize,
           alignmentHomography,
-          targetW,
-          targetH,
+          _alignmentSize,
+          _alignmentSize,
         );
         alignedRgba = warped;
         alignedGray = _rgbaToGray(warped);
       }
 
       if (alignmentHomography != null) {
-        rgbaR = alignedRgba;
-        grayR = alignedGray;
+        workingRightRgba = alignedRgba;
+        workingRightGray = alignedGray;
       } else {
-        grayR = grayR0;
+        workingRightGray = grayRightOriginal;
       }
     } catch (_) {
       // アライン失敗時はフォールバック（無視）
     }
 
+    final alignmentRect = _leftRect != null
+        ? _alignmentRectFromSelection(_leftRect!)
+        : const IntRect(left: 0, top: 0, width: _alignmentSize, height: _alignmentSize);
+
+    final rgbaLeftRegion = _extractRgbaRegion(
+      rgbaLeftWork,
+      _alignmentSize,
+      _alignmentSize,
+      alignmentRect,
+    );
+    final rgbaRightRegion = _extractRgbaRegion(
+      workingRightRgba,
+      _alignmentSize,
+      _alignmentSize,
+      alignmentRect,
+    );
+    final grayLeftRegion = _extractGrayRegion(
+      grayLeftWork,
+      _alignmentSize,
+      _alignmentSize,
+      alignmentRect,
+    );
+    final grayRightRegion = _extractGrayRegion(
+      workingRightGray,
+      _alignmentSize,
+      _alignmentSize,
+      alignmentRect,
+    );
+
+    final regionW = alignmentRect.width;
+    final regionH = alignmentRect.height;
+
+    final rgbaL = _resizeRgbaBilinear(
+      rgbaLeftRegion,
+      regionW,
+      regionH,
+      _analysisSize,
+      _analysisSize,
+    );
+    final rgbaR = _resizeRgbaBilinear(
+      rgbaRightRegion,
+      regionW,
+      regionH,
+      _analysisSize,
+      _analysisSize,
+    );
+    var grayL = _resizeGrayBilinear(
+      grayLeftRegion,
+      regionW,
+      regionH,
+      _analysisSize,
+      _analysisSize,
+    );
+    var grayR = _resizeGrayBilinear(
+      grayRightRegion,
+      regionW,
+      regionH,
+      _analysisSize,
+      _analysisSize,
+    );
+
     // SSIM の前に軽いボックスブラーを適用し、1pxレベルのエッジずれを抑制
-    final blurL = boxBlurU8(grayL, targetW, targetH, radius: 1);
-    final blurR = boxBlurU8(grayR, targetW, targetH, radius: 1);
+    final blurL = boxBlurU8(grayL, _analysisSize, _analysisSize, radius: 1);
+    final blurR = boxBlurU8(grayR, _analysisSize, _analysisSize, radius: 1);
     // SSIM差分 + 色差分 + 勾配差分 を統合
-    final ssim = computeSsimMapUint8(blurL, blurR, targetW, targetH, windowRadius: 0);
+    final ssim = computeSsimMapUint8(blurL, blurR, _analysisSize, _analysisSize, windowRadius: 0);
     final diffSsim = ssim.map((v) => 1.0 - v).toList();
     // 明度差に頑健な色差（クロマ重視）で差分を算出
-    final diffColor = colorDiffMapRgbaRobust(rgbaL, rgbaR, targetW, targetH);
+    final diffColor = colorDiffMapRgbaRobust(rgbaL, rgbaR, _analysisSize, _analysisSize);
     // 勾配マップの差分（向きや輪郭の違いを強調）
-    final gradL = sobelGradMagU8(grayL, targetW, targetH);
-    final gradR = sobelGradMagU8(grayR, targetW, targetH);
+    final gradL = sobelGradMagU8(grayL, _analysisSize, _analysisSize);
+    final gradR = sobelGradMagU8(grayR, _analysisSize, _analysisSize);
     final diffGrad = List<double>.generate(diffSsim.length, (i) => (gradL[i] - gradR[i]).abs());
     final diffGradN = normalizeToUnit(diffGrad);
     // 構造(SSIM)と色の両方が高い場所を持ち上げる（幾何平均）+ 妥当な線形ブレンド
@@ -310,28 +377,56 @@ class _ComparePageState extends State<ComparePage>
     });
     final diffN = normalizeToUnit(diffFinal);
 
-    final detector = widget.detector ?? FfiCnnDetector();
+    final detector = FfiCnnDetector();
     await detector.load(Uint8List(0)); // モデル無しでもロード済み扱い
     final detections = detector.detectFromDiffMap(
       diffN,
-      targetW,
-      targetH,
+      _analysisSize,
+      _analysisSize,
       // 直近で保存された設定を使用
       settings: _settings,
       maxOutputs: 20,
       iouThreshold: 0.3,
     );
-    // クロップを適用した場合は、ボックスの原点をフル画像の 64x64 座標へ戻す
+    // クロップを適用した場合は、ボックスの原点をフル画像の 256x256 座標へ戻す
     final boxes = detections.map((d) => d.box).toList();
     if (_leftRect != null) {
-      return boxes
-          .map((d) => IntRect(
-                left: (d.left + leftOffsetX).round(),
-                top: (d.top + leftOffsetY).round(),
-                width: d.width,
-                height: d.height,
-              ))
-          .toList();
+      final double analysisScaleX = _analysisSize / _leftNorm.width;
+      final double analysisScaleY = _analysisSize / _leftNorm.height;
+      final double regionAnalysisLeft = _leftRect!.left * analysisScaleX;
+      final double regionAnalysisTop = _leftRect!.top * analysisScaleY;
+      final double regionAnalysisWidth = _leftRect!.width * analysisScaleX;
+      final double regionAnalysisHeight = _leftRect!.height * analysisScaleY;
+      final double regionFactorX = regionAnalysisWidth / _analysisSize;
+      final double regionFactorY = regionAnalysisHeight / _analysisSize;
+
+      return boxes.map((d) {
+        final double leftAnalysis = regionAnalysisLeft + d.left * regionFactorX;
+        final double topAnalysis = regionAnalysisTop + d.top * regionFactorY;
+        final double rightAnalysis = leftAnalysis + d.width * regionFactorX;
+        final double bottomAnalysis = topAnalysis + d.height * regionFactorY;
+
+        final int left = leftAnalysis.floor().clamp(0, _analysisSize - 1);
+        final int top = topAnalysis.floor().clamp(0, _analysisSize - 1);
+        final int right = math.min(
+          _analysisSize,
+          math.max(left + 1, rightAnalysis.ceil()),
+        );
+        final int bottom = math.min(
+          _analysisSize,
+          math.max(top + 1, bottomAnalysis.ceil()),
+        );
+
+        final int width = math.max(1, right - left);
+        final int height = math.max(1, bottom - top);
+
+        return IntRect(
+          left: left,
+          top: top,
+          width: width,
+          height: height,
+        );
+      }).toList();
     }
     return boxes;
   }
@@ -353,37 +448,58 @@ class _ComparePageState extends State<ComparePage>
     }
   }
 
-  Future<List<int>> _toGrayscale(ui.Image image, int outW, int outH, {Rect? srcRect}) async {
-    // draw scaled to outW x outH then read pixels
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    final srcSize = Size(image.width.toDouble(), image.height.toDouble());
-    final dstRect = Rect.fromLTWH(0, 0, outW.toDouble(), outH.toDouble());
-    final paint = Paint();
-    final src = srcRect ?? (Offset.zero & srcSize);
-    canvas.drawImageRect(image, src, dstRect, paint);
-    final picture = recorder.endRecording();
-    final scaled = await picture.toImage(outW, outH);
-    final byteData = await scaled.toByteData(format: ui.ImageByteFormat.rawRgba);
-    final rgba = byteData!.buffer.asUint8List();
-    final gray = List<int>.filled(outW * outH, 0);
-    for (var i = 0, p = 0; i < gray.length; i++, p += 4) {
-      final r = rgba[p];
-      final g = rgba[p + 1];
-      final b = rgba[p + 2];
-      // simple luma
-      final y = (0.299 * r + 0.587 * g + 0.114 * b).round();
-      gray[i] = y.clamp(0, 255);
+  Future<void> _prepareLeftAlignment() async {
+    _leftAlignmentRgba = null;
+    _leftAlignmentGray = null;
+    _leftKeypoints = null;
+    _leftDescriptors = null;
+
+    final image = await _decodeAndScaleTo(_getBytesOrNull(widget.left), widget.left.path);
+    if (!mounted) return;
+    if (image == null) {
+      return;
     }
-    return gray;
+
+    final rgba = await _toRgba(
+      image,
+      _alignmentSize,
+      _alignmentSize,
+      quality: ui.FilterQuality.high,
+    );
+    final gray = _rgbaToGray(rgba);
+    final keypoints = detectHarrisKeypointsU8(
+      gray,
+      _alignmentSize,
+      _alignmentSize,
+      responseThreshold: 2e5,
+      maxFeatures: 800,
+    );
+    final descriptors = computeBriefDescriptors(
+      gray,
+      _alignmentSize,
+      _alignmentSize,
+      keypoints,
+    );
+
+    if (!mounted) return;
+    _leftAlignmentRgba = rgba;
+    _leftAlignmentGray = gray;
+    _leftKeypoints = keypoints;
+    _leftDescriptors = descriptors;
   }
 
-  Future<Uint8List> _toRgba(ui.Image image, int outW, int outH, {Rect? srcRect}) async {
+  Future<Uint8List> _toRgba(
+    ui.Image image,
+    int outW,
+    int outH, {
+    Rect? srcRect,
+    ui.FilterQuality quality = ui.FilterQuality.low,
+  }) async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     final srcSize = Size(image.width.toDouble(), image.height.toDouble());
     final dstRect = Rect.fromLTWH(0, 0, outW.toDouble(), outH.toDouble());
-    final paint = Paint();
+    final paint = Paint()..filterQuality = quality;
     final src = srcRect ?? (Offset.zero & srcSize);
     canvas.drawImageRect(image, src, dstRect, paint);
     final picture = recorder.endRecording();
@@ -401,6 +517,161 @@ class _ComparePageState extends State<ComparePage>
       out[i] = (0.299 * r + 0.587 * g + 0.114 * b).round().clamp(0, 255);
     }
     return out;
+  }
+
+  List<int> _resizeGrayBilinear(
+    List<int> src,
+    int srcW,
+    int srcH,
+    int dstW,
+    int dstH,
+  ) {
+    if (srcW == dstW && srcH == dstH) {
+      return List<int>.from(src);
+    }
+    final dst = List<int>.filled(dstW * dstH, 0);
+    if (dstW == 0 || dstH == 0) return dst;
+    final scaleX = srcW / dstW;
+    final scaleY = srcH / dstH;
+    for (var y = 0; y < dstH; y++) {
+      final srcY = ((y + 0.5) * scaleY) - 0.5;
+      final srcYClamped = math.max(0.0, math.min(srcY, (srcH - 1).toDouble()));
+      final y0 = srcYClamped.floor();
+      final y1 = math.min(y0 + 1, srcH - 1);
+      final fy = srcYClamped - y0;
+      final oneMinusFy = 1.0 - fy;
+      for (var x = 0; x < dstW; x++) {
+        final srcX = ((x + 0.5) * scaleX) - 0.5;
+        final srcXClamped = math.max(0.0, math.min(srcX, (srcW - 1).toDouble()));
+        final x0 = srcXClamped.floor();
+        final x1 = math.min(x0 + 1, srcW - 1);
+        final fx = srcXClamped - x0;
+        final oneMinusFx = 1.0 - fx;
+
+        final idx00 = y0 * srcW + x0;
+        final idx01 = y0 * srcW + x1;
+        final idx10 = y1 * srcW + x0;
+        final idx11 = y1 * srcW + x1;
+
+        final w00 = oneMinusFx * oneMinusFy;
+        final w01 = fx * oneMinusFy;
+        final w10 = oneMinusFx * fy;
+        final w11 = fx * fy;
+
+        final value = src[idx00] * w00 +
+            src[idx01] * w01 +
+            src[idx10] * w10 +
+            src[idx11] * w11;
+        dst[y * dstW + x] = value.round().clamp(0, 255);
+      }
+    }
+    return dst;
+  }
+
+  Uint8List _resizeRgbaBilinear(
+    Uint8List src,
+    int srcW,
+    int srcH,
+    int dstW,
+    int dstH,
+  ) {
+    if (srcW == dstW && srcH == dstH) {
+      return Uint8List.fromList(src);
+    }
+    final dst = Uint8List(dstW * dstH * 4);
+    if (dstW == 0 || dstH == 0) return dst;
+    final scaleX = srcW / dstW;
+    final scaleY = srcH / dstH;
+    for (var y = 0; y < dstH; y++) {
+      final srcY = ((y + 0.5) * scaleY) - 0.5;
+      final srcYClamped = math.max(0.0, math.min(srcY, (srcH - 1).toDouble()));
+      final y0 = srcYClamped.floor();
+      final y1 = math.min(y0 + 1, srcH - 1);
+      final fy = srcYClamped - y0;
+      final oneMinusFy = 1.0 - fy;
+      for (var x = 0; x < dstW; x++) {
+        final srcX = ((x + 0.5) * scaleX) - 0.5;
+        final srcXClamped = math.max(0.0, math.min(srcX, (srcW - 1).toDouble()));
+        final x0 = srcXClamped.floor();
+        final x1 = math.min(x0 + 1, srcW - 1);
+        final fx = srcXClamped - x0;
+        final oneMinusFx = 1.0 - fx;
+
+        final idx00 = (y0 * srcW + x0) * 4;
+        final idx01 = (y0 * srcW + x1) * 4;
+        final idx10 = (y1 * srcW + x0) * 4;
+        final idx11 = (y1 * srcW + x1) * 4;
+
+        final w00 = oneMinusFx * oneMinusFy;
+        final w01 = fx * oneMinusFy;
+        final w10 = oneMinusFx * fy;
+        final w11 = fx * fy;
+
+        final dstIndex = (y * dstW + x) * 4;
+        for (var c = 0; c < 4; c++) {
+          final value = src[idx00 + c] * w00 +
+              src[idx01 + c] * w01 +
+              src[idx10 + c] * w10 +
+              src[idx11 + c] * w11;
+          dst[dstIndex + c] = value.round().clamp(0, 255);
+        }
+      }
+    }
+    return dst;
+  }
+
+  IntRect _alignmentRectFromSelection(IntRect selected) {
+    final scaleX = _alignmentSize / _leftNorm.width;
+    final scaleY = _alignmentSize / _leftNorm.height;
+    final left = math.max(0, math.min(_alignmentSize - 1, (selected.left * scaleX).floor()));
+    final top = math.max(0, math.min(_alignmentSize - 1, (selected.top * scaleY).floor()));
+    final rightRaw = ((selected.left + selected.width) * scaleX).ceil();
+    final bottomRaw = ((selected.top + selected.height) * scaleY).ceil();
+    final right = math.max(left + 1, math.min(_alignmentSize, rightRaw));
+    final bottom = math.max(top + 1, math.min(_alignmentSize, bottomRaw));
+    final width = math.max(1, right - left);
+    final height = math.max(1, bottom - top);
+    return IntRect(left: left, top: top, width: width, height: height);
+  }
+
+  List<int> _extractGrayRegion(
+    List<int> src,
+    int srcW,
+    int srcH,
+    IntRect region,
+  ) {
+    if (region.left == 0 && region.top == 0 &&
+        region.width == srcW && region.height == srcH) {
+      return List<int>.from(src);
+    }
+    final dst = List<int>.filled(region.width * region.height, 0);
+    for (var y = 0; y < region.height; y++) {
+      final srcRow = (region.top + y) * srcW;
+      final dstRow = y * region.width;
+      for (var x = 0; x < region.width; x++) {
+        dst[dstRow + x] = src[srcRow + region.left + x];
+      }
+    }
+    return dst;
+  }
+
+  Uint8List _extractRgbaRegion(
+    Uint8List src,
+    int srcW,
+    int srcH,
+    IntRect region,
+  ) {
+    if (region.left == 0 && region.top == 0 &&
+        region.width == srcW && region.height == srcH) {
+      return Uint8List.fromList(src);
+    }
+    final dst = Uint8List(region.width * region.height * 4);
+    for (var y = 0; y < region.height; y++) {
+      final srcRow = ((region.top + y) * srcW + region.left) * 4;
+      final dstRow = y * region.width * 4;
+      dst.setRange(dstRow, dstRow + region.width * 4, src, srcRow);
+    }
+    return dst;
   }
 
   void _reset() {
@@ -439,16 +710,12 @@ class _ComparePageState extends State<ComparePage>
     if (result is IntRect) {
       setState(() {
         _leftRect = result;
-        _showCroppedPreviews = false; // まだ右へ適用していない段階
       });
     } else if (result is (IntRect, bool)) {
       final (rect, applyRight) = result;
       setState(() => _leftRect = rect);
       if (applyRight == true) {
         _applySameRectToRight();
-        setState(() {
-          _showCroppedPreviews = true; // 左も右もプレビューを切り出し表示
-        });
       }
     }
   }
@@ -465,7 +732,7 @@ class _ComparePageState extends State<ComparePage>
     );
     setState(() => _rightRect = mapped);
     // ログ: 左→右に矩形を適用したイベント
-    debugPrint('[Diffapp][rect] left=${_leftRect} -> right=${_rightRect} (L$_leftNorm R$_rightNorm)');
+    debugPrint('[Diffapp][rect] left=$_leftRect -> right=$_rightRect (L$_leftNorm R$_rightNorm)');
   }
 
   Homography? _estimateSimilarityHomography(
@@ -543,8 +810,10 @@ class _ComparePageState extends State<ComparePage>
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () async {
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
                       // 設定ページへ遷移し、レ点で戻った値を即時反映
-                      final result = await Navigator.of(context).push<Settings>(
+                      final result = await navigator.push<Settings>(
                         MaterialPageRoute(
                           builder: (_) => SettingsPage(initial: _settings),
                         ),
@@ -552,7 +821,7 @@ class _ComparePageState extends State<ComparePage>
                       if (!mounted) return;
                       if (result != null) {
                         setState(() => _settings = result);
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           const SnackBar(content: Text('設定を保存しました')),
                         );
                       }
@@ -619,6 +888,19 @@ class _ComparePageState extends State<ComparePage>
     _rightRect = widget.initialRightRect ?? _rightRect;
     // 設定初期値（ホームから渡されたものがあればそれを使用）
     _settings = widget.settings ?? Settings.initial();
+    _leftPreparation = _prepareLeftAlignment();
+  }
+
+  @override
+  void didUpdateWidget(covariant ComparePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldPath = oldWidget.left.path;
+    final newPath = widget.left.path;
+    final oldBytes = oldWidget.left.bytes;
+    final newBytes = widget.left.bytes;
+    if (oldPath != newPath || oldBytes != newBytes) {
+      _leftPreparation = _prepareLeftAlignment();
+    }
   }
 
   @override

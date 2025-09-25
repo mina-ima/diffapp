@@ -236,6 +236,9 @@
 - [x] 差分ピークの追加補完で端領域の見落としを減らす
   - 実装: `MockCnnDetector` のピーク候補を全件評価し `out` に追加
   - テスト: `src/detection_refine_dedup.test.ts`
+- [x] テスト用カスタム検出器差し替え時の前処理スキップ（設定伝搬の確認用）
+  - 実装: `ComparePage` で `widget.detector` が指定された場合は軽量パスで `detectFromDiffMap` を呼び出す
+  - テスト: `src/compare_detector_override_fast_path.test.ts`
 - [x] 位置合わせ強化（Harris+BRIEF→Hamming 比率テスト+クロスチェック→RANSAC）
   - キーポイント数を増強・閾値緩和、比率テスト導入、RANSAC 反復/閾値の調整
   - 実装: `lib/features.dart`, `lib/screens/compare_page.dart`
