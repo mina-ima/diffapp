@@ -261,19 +261,25 @@ class MockCnnDetector implements CnnDetector {
     final remainingSlots = math.max(0, maxOutputs - out.length);
     if (remainingSlots > 0) {
       final side = (width * 0.12).round();
-      final thrPeak = math.max(otsuThreshold01(diffMap), thr * 0.7);
+      final thrPeak = math.max(otsuThreshold01(diffMap), thr * 0.6);
       final peakLimit = math.min(8, remainingSlots + 3);
       final peaks = localMaxima2d(diffMap, width, height,
           radius: 3, threshold: thrPeak, maxFeatures: peakLimit);
       final props = boxesFromPeaks(peaks, width, height, side: side);
       var added = 0;
-      for (final p in props) {
+      for (var i = 0; i < props.length; i++) {
+        final p = props[i];
         bool overlaps = false;
         for (final d in out) {
           if (iou(d.box, p) > 0.35) { overlaps = true; break; }
         }
         if (!overlaps) {
-          out.add(Detection(box: p, score: 1.0, category: cats[out.length % cats.length]));
+          final peakScore = (i < peaks.length) ? peaks[i].$3 : 1.0;
+          out.add(Detection(
+            box: p,
+            score: peakScore,
+            category: cats[out.length % cats.length],
+          ));
           added++;
           if (out.length >= maxOutputs || added >= remainingSlots) break;
         }
@@ -302,6 +308,25 @@ class MockCnnDetector implements CnnDetector {
         }
       }
     }
+
+    if (out.length > maxOutputs) {
+      final boxesFinal = out.map((d) => d.box).toList();
+      final scoresFinal = out.map((d) => d.score).toList();
+      final keep = _runNms(
+        boxesFinal,
+        scoresFinal,
+        iouThreshold: iouThreshold,
+        maxOutputs: maxOutputs,
+      );
+      final dedup = <Detection>[];
+      for (final idx in keep) {
+        dedup.add(out[idx]);
+      }
+      out
+        ..clear()
+        ..addAll(dedup);
+    }
+
     return out;
   }
 
