@@ -720,7 +720,7 @@ Uint8List warpRgbaByHomography(
   return out;
 }
 
-Homography _homographyFromSimilarity(SimilarityTransform t) {
+Homography homographyFromSimilarity(SimilarityTransform t) {
   final h11 = t.scale * t.cosTheta;
   final h12 = -t.scale * t.sinTheta;
   final h21 = t.scale * t.sinTheta;
@@ -738,6 +738,32 @@ Homography _homographyFromSimilarity(SimilarityTransform t) {
   );
 }
 
+Homography composeHomography(Homography a, Homography b) {
+  double mulRowCol(double r1c1, double r1c2, double r1c3,
+          double c1, double c2, double c3) =>
+      r1c1 * c1 + r1c2 * c2 + r1c3 * c3;
+  final h11 = mulRowCol(a.h11, a.h12, a.h13, b.h11, b.h21, b.h31);
+  final h12 = mulRowCol(a.h11, a.h12, a.h13, b.h12, b.h22, b.h32);
+  final h13 = mulRowCol(a.h11, a.h12, a.h13, b.h13, b.h23, b.h33);
+  final h21 = mulRowCol(a.h21, a.h22, a.h23, b.h11, b.h21, b.h31);
+  final h22 = mulRowCol(a.h21, a.h22, a.h23, b.h12, b.h22, b.h32);
+  final h23 = mulRowCol(a.h21, a.h22, a.h23, b.h13, b.h23, b.h33);
+  final h31 = mulRowCol(a.h31, a.h32, a.h33, b.h11, b.h21, b.h31);
+  final h32 = mulRowCol(a.h31, a.h32, a.h33, b.h12, b.h22, b.h32);
+  final h33 = mulRowCol(a.h31, a.h32, a.h33, b.h13, b.h23, b.h33);
+  return Homography(
+    h11: h11,
+    h12: h12,
+    h13: h13,
+    h21: h21,
+    h22: h22,
+    h23: h23,
+    h31: h31,
+    h32: h32,
+    h33: h33,
+  ).normalized();
+}
+
 Uint8List warpRgbaBySimilarity(
   Uint8List src,
   int srcW,
@@ -746,7 +772,7 @@ Uint8List warpRgbaBySimilarity(
   int outW,
   int outH,
 ) {
-  final h = _homographyFromSimilarity(t);
+  final h = homographyFromSimilarity(t);
   return warpRgbaByHomography(src, srcW, srcH, h, outW, outH);
 }
 

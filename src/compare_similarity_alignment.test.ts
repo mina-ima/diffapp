@@ -7,7 +7,8 @@ describe('ComparePage の位置合わせ強化', () => {
   it('相似変換ベースのフォールバックを実装している', () => {
     const source = readFileSync(target, 'utf-8');
     expect(source).toMatch(/estimateSimilarityTransformRansac\(/);
-    expect(source).toMatch(/_applySimilarityFallback\(/);
-    expect(source).toMatch(/warpRgbaBySimilarity\(/);
+    expect(source).toMatch(/_estimateSimilarityHomography\(/);
+    expect(source).toMatch(/composeHomography\(/);
+    expect(source).toMatch(/homographyFromSimilarity\(/);
   });
 });

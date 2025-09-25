@@ -52,6 +52,7 @@ class ComparePage extends StatefulWidget {
 
 class _ComparePageState extends State<ComparePage>
     with TickerProviderStateMixin {
+  static const int _alignmentPasses = 2;
   IntRect? _leftRect;
   IntRect? _rightRect;
   late final Dimensions _leftNorm;
@@ -191,63 +192,84 @@ class _ComparePageState extends State<ComparePage>
     var grayL = await _toGrayscale(imgL, targetW, targetH, srcRect: leftCropSrc);
     var grayR = await _toGrayscale(imgR, targetW, targetH, srcRect: rightCropSrc);
 
-    // 画像の微小ズレを補正: Harris+BRIEFで対応点→ホモグラフィ推定→右画像を左にワーピング
+    // 画像の微小ズレを多段で補正: Harris+BRIEFで対応点→ホモグラフィ/相似変換推定
     try {
-      final kL = detectHarrisKeypointsU8(grayL, targetW, targetH,
-          responseThreshold: 2e5, maxFeatures: 800);
-      final kR = detectHarrisKeypointsU8(grayR, targetW, targetH,
-          responseThreshold: 2e5, maxFeatures: 800);
-      if (kL.length >= 8 && kR.length >= 8) {
-        final dL = computeBriefDescriptors(grayL, targetW, targetH, kL);
-        final dR = computeBriefDescriptors(grayR, targetW, targetH, kR);
-        final m = matchDescriptorsHammingRatioCross(dL, dR, ratio: 0.82, crossCheck: true, maxMatches: 1000);
-        if (m.isNotEmpty) {
-          final src = <Point2>[];
-          final dst = <Point2>[];
-          for (var i = 0; i < m.length && i < 300; i++) {
-            final (qi, tj, _) = m[i];
-            src.add(Point2(kL[qi].x.toDouble(), kL[qi].y.toDouble()));
-            dst.add(Point2(kR[tj].x.toDouble(), kR[tj].y.toDouble()));
-          }
-          var aligned = false;
-          if (m.length >= 16) {
-            try {
-              final hr = estimateHomographyRansac(
-                src,
-                dst,
-                iterations: 600,
-                inlierThreshold: 1.5,
-                minInliers: 16,
-              );
-              final warped = warpRgbaByHomography(
-                rgbaR0,
-                targetW,
-                targetH,
-                hr.homography,
-                targetW,
-                targetH,
-              );
-              rgbaR = warped;
-              grayR = _rgbaToGray(warped);
-              aligned = true;
-            } catch (_) {
-              aligned = false;
-            }
-          }
-          if (!aligned && m.length >= 8) {
-            final fallback = _applySimilarityFallback(
-              rgbaR0,
-              targetW,
-              targetH,
+      final grayR0 = List<int>.from(grayR);
+      Homography? alignmentHomography;
+      Uint8List alignedRgba = rgbaR0;
+      List<int> alignedGray = grayR0;
+
+      for (var pass = 0; pass < _alignmentPasses; pass++) {
+        final kLPass = detectHarrisKeypointsU8(grayL, targetW, targetH,
+            responseThreshold: 2e5, maxFeatures: 800);
+        final kRPass = detectHarrisKeypointsU8(alignedGray, targetW, targetH,
+            responseThreshold: 2e5, maxFeatures: 800);
+        if (kLPass.length < 8 || kRPass.length < 8) {
+          break;
+        }
+        final dLPass = computeBriefDescriptors(grayL, targetW, targetH, kLPass);
+        final dRPass = computeBriefDescriptors(alignedGray, targetW, targetH, kRPass);
+        final matches = matchDescriptorsHammingRatioCross(
+          dLPass,
+          dRPass,
+          ratio: 0.82,
+          crossCheck: true,
+          maxMatches: 1000,
+        );
+        if (matches.isEmpty) {
+          break;
+        }
+
+        final src = <Point2>[];
+        final dst = <Point2>[];
+        for (var i = 0; i < matches.length && i < 300; i++) {
+          final (qi, tj, _) = matches[i];
+          src.add(Point2(kLPass[qi].x.toDouble(), kLPass[qi].y.toDouble()));
+          dst.add(Point2(kRPass[tj].x.toDouble(), kRPass[tj].y.toDouble()));
+        }
+
+        Homography? stepHomography;
+        if (matches.length >= 16) {
+          try {
+            stepHomography = estimateHomographyRansac(
               src,
               dst,
-            );
-            if (fallback != null) {
-              rgbaR = fallback.$1;
-              grayR = fallback.$2;
-            }
+              iterations: 600,
+              inlierThreshold: 1.5,
+              minInliers: 16,
+            ).homography;
+          } catch (_) {
+            stepHomography = null;
           }
         }
+        if (stepHomography == null && matches.length >= 8) {
+          stepHomography = _estimateSimilarityHomography(src, dst);
+        }
+        if (stepHomography == null) {
+          break;
+        }
+
+        alignmentHomography = alignmentHomography == null
+            ? stepHomography
+            : composeHomography(alignmentHomography, stepHomography);
+
+        final warped = warpRgbaByHomography(
+          rgbaR0,
+          targetW,
+          targetH,
+          alignmentHomography,
+          targetW,
+          targetH,
+        );
+        alignedRgba = warped;
+        alignedGray = _rgbaToGray(warped);
+      }
+
+      if (alignmentHomography != null) {
+        rgbaR = alignedRgba;
+        grayR = alignedGray;
+      } else {
+        grayR = grayR0;
       }
     } catch (_) {
       // アライン失敗時はフォールバック（無視）
@@ -446,10 +468,7 @@ class _ComparePageState extends State<ComparePage>
     debugPrint('[Diffapp][rect] left=${_leftRect} -> right=${_rightRect} (L$_leftNorm R$_rightNorm)');
   }
 
-  (Uint8List, List<int>)? _applySimilarityFallback(
-    Uint8List rgba,
-    int width,
-    int height,
+  Homography? _estimateSimilarityHomography(
     List<Point2> src,
     List<Point2> dst,
   ) {
@@ -459,24 +478,16 @@ class _ComparePageState extends State<ComparePage>
       final sim = estimateSimilarityTransformRansac(
         src,
         dst,
-        iterations: 400,
-        inlierThreshold: 1.2,
+        iterations: 500,
+        inlierThreshold: 1.1,
         minInliers: minPts,
       );
       if (sim.inliersCount < minPts) return null;
       final scale = sim.transform.scale;
-      if (!scale.isFinite || scale < 0.8 || scale > 1.25) {
+      if (!scale.isFinite || scale < 0.85 || scale > 1.18) {
         return null;
       }
-      final warped = warpRgbaBySimilarity(
-        rgba,
-        width,
-        height,
-        sim.transform,
-        width,
-        height,
-      );
-      return (warped, _rgbaToGray(warped));
+      return homographyFromSimilarity(sim.transform);
     } catch (_) {
       return null;
     }
