@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:diffapp/cnn_detection.dart';
@@ -61,6 +62,8 @@ class TfliteCnnNative implements CnnNative {
     final bin = hysteresisBinary(diffMap, width, height, high: thr, low: lowThr);
     const refArea = 64 * 64; // 4096 基準
     final minAreaPx = (refArea * (settings.minAreaPercent / 100)).ceil();
+    final minSideLimit = math.min(width, height);
+    final minCoreSide = math.max(1, math.min(minSideLimit, math.sqrt(minAreaPx).ceil()));
     // 小領域も拾ってから後段で形状別にフィルタする
     var boxes = connectedComponentsBoundingBoxes(
       bin,
@@ -81,9 +84,6 @@ class TfliteCnnNative implements CnnNative {
     if (boxes.isNotEmpty) {
       final nextBoxes = <IntRect>[];
       final nextScores = <double>[];
-      // 最小面積の適用と細長領域の救済
-      final refArea = 64 * 64; // keep local consistent
-      final minAreaPx = (refArea * (settings.minAreaPercent / 100)).ceil();
       for (var i = 0; i < boxes.length; i++) {
         final b = boxes[i];
         final area = b.width * b.height;
@@ -132,7 +132,6 @@ class TfliteCnnNative implements CnnNative {
       final low2 = (thr2 * 0.8).clamp(0.0, 1.0);
       final bin2 = hysteresisBinary(diffMap, width, height, high: thr2, low: low2);
       final bin2Dil = dilateBinary(bin2, width, height, iterations: 1);
-      final minAreaPx2 = (refArea * (settings.minAreaPercent / 100)).ceil();
       var boxes2 = connectedComponentsBoundingBoxes(
         bin2Dil,
         width,
@@ -148,13 +147,12 @@ class TfliteCnnNative implements CnnNative {
       if (boxes2.isNotEmpty) {
         final nb = <IntRect>[];
         final ns = <double>[];
-        final minAreaPx2b = (refArea * (settings.minAreaPercent / 100)).ceil();
         for (var i = 0; i < boxes2.length; i++) {
           final b = boxes2[i];
           final area = b.width * b.height;
           if (area > maxAreaPx2) continue;
           final elongated = isElongated(b, ratio: 4.0);
-          final enoughArea = area >= minAreaPx2b || (elongated && area >= (minAreaPx2b * 0.25));
+          final enoughArea = area >= minAreaPx || (elongated && area >= (minAreaPx * 0.25));
           if (!enoughArea) continue;
           nb.add(b);
           ns.add(scores2[i]);
@@ -192,39 +190,68 @@ class TfliteCnnNative implements CnnNative {
       final argmax = argmaxByQuantile(diffMap, width, height, b, quantile: 0.8);
       if (argmax != null) {
         final (mx, my) = argmax;
-        final minSide = (width * 0.08).round();
-        final half = minSide ~/ 2;
+        final half = minCoreSide ~/ 2;
         final left = (mx - half).clamp(0, width - 1);
         final top = (my - half).clamp(0, height - 1);
         b = IntRect(
           left: left,
           top: top,
-          width: (minSide).clamp(1, width - left),
-          height: (minSide).clamp(1, height - top),
+          width: math.max(1, math.min(minCoreSide, width - left)),
+          height: math.max(1, math.min(minCoreSide, height - top)),
         );
       }
-      b = expandClampBox(b, 3, (width * 0.08).round(), width, height);
+      b = expandClampBox(b, 3, minCoreSide, width, height);
       final area = b.width * b.height;
       final elongatedLarge = isElongated(b, ratio: 3.5) && area > (width * height * 0.12);
-      if (area <= 2 || elongatedLarge) continue;
+      final elongated = isElongated(b, ratio: 4.0);
+      final enoughArea = area >= minAreaPx || (elongated && area >= (minAreaPx * 0.25));
+      if (area <= 2 || elongatedLarge || !enoughArea) continue;
       final cat = cats[i % cats.length];
       out.add(Detection(box: b, score: scores[k], category: cat));
     }
     if (out.length < 3) {
-      final side = (width * 0.12).round();
+      final side = math.max(minCoreSide, 1);
       final peaks = localMaxima2d(diffMap, width, height,
           radius: 3, threshold: thr, maxFeatures: 5);
       final props = boxesFromPeaks(peaks, width, height, side: side);
       for (final p in props) {
         bool overlaps = false;
         for (final d in out) {
-          if (iou(d.box, p) > 0.3) { overlaps = true; break; }
+          if (iou(d.box, p) > 0.3) {
+            overlaps = true;
+            break;
+          }
         }
-        if (!overlaps) {
-          out.add(Detection(box: p, score: 1.0, category: cats[out.length % cats.length]));
-          if (out.length >= 3) break;
+        if (overlaps) {
+          continue;
         }
+        final area = p.width * p.height;
+        final elongated = isElongated(p, ratio: 4.0);
+        final enoughArea = area >= minAreaPx || (elongated && area >= (minAreaPx * 0.25));
+        if (!enoughArea) {
+          continue;
+        }
+        out.add(Detection(box: p, score: 1.0, category: cats[out.length % cats.length]));
+        if (out.length >= 3) break;
       }
+    }
+    if (out.length > maxOutputs) {
+      final boxes = out.map((d) => d.box).toList();
+      final scoresOut = out.map((d) => d.score).toList();
+      final keep = _runNms(
+        boxes,
+        scoresOut,
+        iouThreshold: (iouThreshold * 0.85).clamp(0.2, 0.5),
+        maxOutputs: maxOutputs,
+      );
+      return [
+        for (final idx in keep)
+          Detection(
+            box: boxes[idx],
+            score: scoresOut[idx],
+            category: out[idx].category,
+          )
+      ];
     }
     return out;
   }

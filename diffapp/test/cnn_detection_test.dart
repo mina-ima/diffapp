@@ -28,9 +28,16 @@ void main() {
   test('categories respect settings toggles', () async {
     final det = MockCnnDetector();
     await det.load(Uint8List(0));
-    const w = 12, h = 8;
-    final diffMap =
-        _makeDiffMap(w, h, [(2, 2, 3, 3, 0.92), (8, 4, 9, 5, 0.93)], 0.1);
+    const w = 64, h = 64;
+    final diffMap = _makeDiffMap(
+      w,
+      h,
+      [
+        (8, 8, 23, 23, 0.92),
+        (40, 28, 55, 43, 0.93),
+      ],
+      0.1,
+    );
 
     // Only text on => all detections labeled text
     final s1 = Settings.initial().copyWith(
@@ -62,9 +69,9 @@ void main() {
   test('precision affects threshold (higher precision detects more)', () async {
     final det = MockCnnDetector();
     await det.load(Uint8List(0));
-    const w = 10, h = 6;
-    // One weak block at 0.82
-    final diffMap = _makeDiffMap(w, h, [(4, 2, 5, 3, 0.82)], 0.1);
+    const w = 64, h = 64;
+    // One weak block at 0.82（16x16=256px）
+    final diffMap = _makeDiffMap(w, h, [(24, 24, 39, 39, 0.82)], 0.1);
 
     final lowPrec = Settings.initial().copyWith(precision: 1);
     final highPrec = Settings.initial().copyWith(precision: 5);

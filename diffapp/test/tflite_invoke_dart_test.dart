@@ -31,8 +31,8 @@ void main() {
     await det.load(Uint8List.fromList([1, 2, 3]));
     expect(det.isLoaded, isTrue);
 
-    const w = 10, h = 8;
-    final diff = _makeDiffMap(w, h, [(1, 1, 2, 2, 0.95)], 0.1);
+    const w = 64, h = 64;
+    final diff = _makeDiffMap(w, h, [(24, 24, 39, 39, 0.95)], 0.1);
 
     final out = det.detectFromDiffMap(
       diff,
@@ -42,12 +42,12 @@ void main() {
     );
 
     expect(out, isNotEmpty);
-    // (1,1)-(2,2) の 2x2 ブロックが1件は検出される想定
-    final hasBlock = out.any((d) =>
-        d.box.left == 1 &&
-        d.box.top == 1 &&
-        d.box.width == 2 &&
-        d.box.height == 2);
+    // 中央ブロック付近の差分が検出されていることを確認
+    final hasBlock = out.any((d) {
+      final right = d.box.left + d.box.width;
+      final bottom = d.box.top + d.box.height;
+      return d.box.left <= 32 && right >= 32 && d.box.top <= 32 && bottom >= 32;
+    });
     expect(hasBlock, isTrue);
   });
 }

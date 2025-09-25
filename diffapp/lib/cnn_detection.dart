@@ -200,6 +200,11 @@ class MockCnnDetector implements CnnDetector {
     final refinedBoxes = <IntRect>[];
     final refinedScores = <double>[];
     final refinedCats = <DetectionCategory>[];
+    final minCoreSideRaw = math.sqrt(minAreaPx).ceil();
+    final minCoreSideLimit = math.min(width, height);
+    final minCoreSide = minCoreSideRaw > 0
+        ? math.max(1, math.min(minCoreSideLimit, minCoreSideRaw))
+        : 1;
     for (var i = 0; i < selected.length; i++) {
       final idxSel = selected[i];
       final peak = scores[idxSel];
@@ -210,7 +215,7 @@ class MockCnnDetector implements CnnDetector {
       final argmax = argmaxByQuantile(diffMap, width, height, b, quantile: 0.8);
       if (argmax != null) {
         final (mx, my) = argmax;
-        final minSide = (width * 0.08).round(); // 少し大きめに
+        final minSide = minCoreSide;
         final half = minSide ~/ 2;
         final left = (mx - half).clamp(0, width - 1);
         final top = (my - half).clamp(0, height - 1);
@@ -221,7 +226,7 @@ class MockCnnDetector implements CnnDetector {
           height: (minSide).clamp(1, height - top),
         );
       }
-      b = expandClampBox(b, 3, (width * 0.08).round(), width, height);
+      b = expandClampBox(b, 3, minCoreSide, width, height);
       final area = b.width * b.height;
       final elongatedLarge = isElongated(b, ratio: 3.5) && area > (width * height * 0.12);
       if (area <= 2 || elongatedLarge) continue;
@@ -260,7 +265,7 @@ class MockCnnDetector implements CnnDetector {
     // Peak proposals: regardlessの件数で上位ピークを補完（最大5件 or maxOutputs まで）
     final remainingSlots = math.max(0, maxOutputs - out.length);
     if (remainingSlots > 0) {
-      final side = (width * 0.12).round();
+      final side = math.max(minCoreSide, 1);
       final thrPeak = math.max(otsuThreshold01(diffMap), thr * 0.6);
       final peakLimit = math.min(8, remainingSlots + 3);
       final peaks = localMaxima2d(diffMap, width, height,
@@ -273,16 +278,23 @@ class MockCnnDetector implements CnnDetector {
         for (final d in out) {
           if (iou(d.box, p) > 0.35) { overlaps = true; break; }
         }
-        if (!overlaps) {
-          final peakScore = (i < peaks.length) ? peaks[i].$3 : 1.0;
-          out.add(Detection(
-            box: p,
-            score: peakScore,
-            category: cats[out.length % cats.length],
-          ));
-          added++;
-          if (out.length >= maxOutputs || added >= remainingSlots) break;
+        if (overlaps) {
+          continue;
         }
+        final area = p.width * p.height;
+        final elongated = isElongated(p, ratio: 4.0);
+        final enoughArea = area >= minAreaPx || (elongated && area >= (minAreaPx * 0.25));
+        if (!enoughArea) {
+          continue;
+        }
+        final peakScore = (i < peaks.length) ? peaks[i].$3 : 1.0;
+        out.add(Detection(
+          box: p,
+          score: peakScore,
+          category: cats[out.length % cats.length],
+        ));
+        added++;
+        if (out.length >= maxOutputs || added >= remainingSlots) break;
       }
     }
 
@@ -400,6 +412,13 @@ class MockCnnDetector implements CnnDetector {
     int maxClusters = 10,
   }) {
     if (gridW <= 0 || gridH <= 0) return const <Detection>[];
+    const refArea = 64 * 64;
+    final minAreaPx = (refArea * (settings.minAreaPercent / 100)).ceil();
+    final minSideRaw = math.sqrt(minAreaPx).ceil();
+    final minSideLimit = math.min(w, h);
+    final minSide = minSideRaw > 0
+        ? math.max(1, math.min(minSideLimit, minSideRaw))
+        : 1;
     final cats = _enabledCategories(settings);
 
     // タイル平均（上位分位の平均）を計算
@@ -477,11 +496,18 @@ class MockCnnDetector implements CnnDetector {
       for (final d in out) {
         if (iou(d.box, it.$1) > 0.4) { sup = true; break; }
       }
-      if (!sup) {
-        final b = expandClampBox(it.$1, 2, (w * 0.06).round(), w, h);
-        out.add(Detection(box: b, score: it.$2, category: cats[out.length % cats.length]));
-        if (out.length >= maxClusters) break;
+      if (sup) {
+        continue;
       }
+      var b = expandClampBox(it.$1, 2, minSide, w, h);
+      final area = b.width * b.height;
+      final elongated = isElongated(b, ratio: 4.0);
+      final enoughArea = area >= minAreaPx || (elongated && area >= (minAreaPx * 0.25));
+      if (!enoughArea) {
+        continue;
+      }
+      out.add(Detection(box: b, score: it.$2, category: cats[out.length % cats.length]));
+      if (out.length >= maxClusters) break;
     }
     return out;
   }
