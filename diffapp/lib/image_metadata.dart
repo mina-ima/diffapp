@@ -136,7 +136,9 @@ Future<(int, int)> readImageSizeFastConsideringExif(String path) async {
 
       if (width != null && height != null) {
         final rotated = (orientation >= 5 && orientation <= 8);
-        return rotated ? (height!, width!) : (width!, height!);
+        final w = width;
+        final h = height;
+        return rotated ? (h, w) : (w, h);
       }
     }
 
@@ -147,4 +149,3 @@ Future<(int, int)> readImageSizeFastConsideringExif(String path) async {
     await raf.close();
   }
 }
-

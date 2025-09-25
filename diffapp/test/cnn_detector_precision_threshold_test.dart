@@ -33,7 +33,7 @@ void main() {
     final resLow = det.detectFromDiffMap(diff, w, h, settings: low);
     expect(resLow.isEmpty, isTrue);
 
-    // 高精度（threshold=0.8）→ 検出される
+    // 高精度（threshold≈0.58）→ 検出される
     final high = low.copyWith(precision: 5);
     final resHigh = det.detectFromDiffMap(diff, w, h, settings: high);
     expect(resHigh.isNotEmpty, isTrue);

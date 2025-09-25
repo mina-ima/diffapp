@@ -55,8 +55,8 @@ List<int> buildJpegWithExif({
 void main() {
   test('JPEG Exif Orientation 6 swaps width/height', () async {
     final tmp = await File('${Directory.systemTemp.path}/exif_o6.jpg').create();
-    final w = 4032;
-    final h = 3024;
+    const w = 4032;
+    const h = 3024;
     final data = buildJpegWithExif(width: w, height: h, orientation: 6);
     await tmp.writeAsBytes(data, flush: true);
 
@@ -69,8 +69,8 @@ void main() {
 
   test('JPEG Exif Orientation 1 keeps width/height', () async {
     final tmp = await File('${Directory.systemTemp.path}/exif_o1.jpg').create();
-    final w = 4032;
-    final h = 3024;
+    const w = 4032;
+    const h = 3024;
     final data = buildJpegWithExif(width: w, height: h, orientation: 1);
     await tmp.writeAsBytes(data, flush: true);
 
@@ -81,4 +81,3 @@ void main() {
     await tmp.delete();
   });
 }
-

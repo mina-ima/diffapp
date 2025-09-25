@@ -1,13 +1,14 @@
+import 'dart:typed_data';
+
 import 'package:diffapp/cnn_detection.dart';
-import 'package:diffapp/image_pipeline.dart';
 import 'package:diffapp/settings.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('細い縦長の差分（本の背表紙想定）', () {
     // 解析空間は 64x64 とし、右上付近に幅1px・高さ20pxの強い差分を作る。
-    // 既存実装では minAreaPercent=2% -> 約82px 相当のため除外されがち。
-    // 修正後は『細長い領域』に限って最小面積の救済が働き、検出できることを期待する。
+    // 既定の minAreaPercent=5% -> 約205px 相当のため、単純な面積しきい値では除外されがち。
+    // 細長い領域に限って最小面積を25%まで緩和する救済が働き、検出できることを期待する。
     test('右上の背表紙を検出できる', () {
       const w = 64, h = 64;
       final diff = List<double>.filled(w * h, 0.0);
@@ -42,4 +43,3 @@ void main() {
     });
   });
 }
-

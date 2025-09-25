@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('Android のアプリアイコンが各密度で存在し、Manifest に設定されている', () async {
-    final paths = [
+    const paths = [
       'android/app/src/main/res/mipmap-mdpi/ic_launcher.png',
       'android/app/src/main/res/mipmap-hdpi/ic_launcher.png',
       'android/app/src/main/res/mipmap-xhdpi/ic_launcher.png',
@@ -25,8 +25,8 @@ void main() {
   });
 
   test('iOS の AppIcon セットに代表的なサイズが存在する', () {
-    final base = 'ios/Runner/Assets.xcassets/AppIcon.appiconset';
-    final paths = [
+    const base = 'ios/Runner/Assets.xcassets/AppIcon.appiconset';
+    const paths = [
       '$base/Icon-App-60x60@2x.png',
       '$base/Icon-App-60x60@3x.png',
       '$base/Icon-App-76x76@2x.png',

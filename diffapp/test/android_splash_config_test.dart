@@ -10,10 +10,11 @@ void main() {
 
     final xml = await file.readAsString();
     // 中央にロゴ（ic_launcher）を配置する bitmap 要素が含まれること
+    final hasCenteredBitmap = xml.contains('<bitmap') &&
+        RegExp(r'android:src\s*=\s*"@mipmap/ic_launcher"').hasMatch(xml) &&
+        RegExp(r'android:gravity\s*=\s*"center"').hasMatch(xml);
     expect(
-      xml.contains('<bitmap') &&
-          RegExp('android:src\s*=\s*"@mipmap/ic_launcher"').hasMatch(xml) &&
-          RegExp('android:gravity\s*=\s*"center"').hasMatch(xml),
+      hasCenteredBitmap,
       isTrue,
       reason:
           'launch_background.xml に <bitmap android:gravity="center" android:src="@mipmap/ic_launcher"/> を追加してください',

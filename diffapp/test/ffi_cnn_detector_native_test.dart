@@ -14,9 +14,9 @@ class _FakeNativeDetector implements CnnNative {
 
   _FakeNativeDetector({this.available = true, List<Detection>? next})
       : nextResult = next ??
-            [
+            const [
               Detection(
-                box: const IntRect(left: 1, top: 2, width: 3, height: 4),
+                box: IntRect(left: 1, top: 2, width: 3, height: 4),
                 score: 0.99,
                 category: DetectionCategory.text,
               )
@@ -86,7 +86,7 @@ void main() {
     final det = FfiCnnDetector(native: fake);
 
     // 同じ入力を Mock に直接渡した結果と一致することを確認
-    final w = 10, h = 8;
+    const w = 10, h = 8;
     final diff = _makeDiffMap(w, h, [(1, 1, 2, 2, 0.95)], 0.1);
     final settings = Settings.initial().copyWith(
       detectColor: false,

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:diffapp/image_pipeline.dart';
 import 'package:diffapp/screens/image_select_page.dart';
@@ -6,7 +5,7 @@ import 'package:diffapp/widgets/cropped_image.dart';
 
 class ResultPage extends StatelessWidget {
   final bool noDifferences;
-  // 検出矩形（64x64座標系）
+  // 検出矩形（256x256座標系）
   final List<IntRect> detections;
   // 表示用の正規化寸法（ComparePageと同じ基準）
   final Dimensions leftNorm;
@@ -111,8 +110,7 @@ class _DetectionOverlay extends StatelessWidget {
   final String tag; // 'left' / 'right'
   final SelectedImage image;
   final Dimensions norm;
-  final List<IntRect> detections; // 64x64 座標
-  final double preferredViewportHeight;
+  final List<IntRect> detections; // 256x256 座標
   // 正規化空間でのクロップ矩形（けんさせっていで選択）。null なら全体表示。
   final IntRect? crop;
 
@@ -121,7 +119,6 @@ class _DetectionOverlay extends StatelessWidget {
     required this.image,
     required this.norm,
     required this.detections,
-    this.preferredViewportHeight = 160.0,
     this.crop,
   });
 
@@ -131,6 +128,7 @@ class _DetectionOverlay extends StatelessWidget {
       builder: (context, constraints) {
         // 表示対象（全体 or クロップ）に合わせてスケールを決定
         final targetRect = crop ?? IntRect(left: 0, top: 0, width: norm.width, height: norm.height);
+        const preferredViewportHeight = 160.0;
         double s = preferredViewportHeight / targetRect.height;
         double viewW = targetRect.width * s;
         double viewH = targetRect.height * s;
@@ -140,9 +138,9 @@ class _DetectionOverlay extends StatelessWidget {
           viewH = targetRect.height * s;
         }
 
-        // 64x64 → 正規化寸法 → 表示スケール s（さらにクロップ原点を原点に）
-        const srcW = 128;
-        const srcH = 128;
+        // 256x256 → 正規化寸法 → 表示スケール s（さらにクロップ原点を原点に）
+        const srcW = 256;
+        const srcH = 256;
         final toNormX = norm.width / srcW;
         final toNormY = norm.height / srcH;
         final cropLeft = targetRect.left;

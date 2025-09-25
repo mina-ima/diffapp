@@ -28,7 +28,7 @@ void main() {
     final right = SelectedImage(label: 'R', width: 64, height: 64, bytes: rightBytes);
 
     // 正規化寸法（ComparePageと同じ想定で 1280x? に揃えるが、ここでは簡略化して64x64）
-    final norm = const Dimensions(64, 64);
+    const norm = Dimensions(64, 64);
 
     await tester.pumpWidget(
       MaterialApp(

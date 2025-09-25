@@ -28,7 +28,8 @@ class TfliteCnnNative implements CnnNative {
   double _thresholdForPrecision(int p) {
     if (p < Settings.minPrecision) p = Settings.minPrecision;
     if (p > Settings.maxPrecision) p = Settings.maxPrecision;
-    return 0.9 - (p - 1) * 0.025;
+    final t = 0.9 - (p - 1) * 0.05;
+    return t.clamp(0.6, 0.9);
   }
 
   List<DetectionCategory> _enabledCategories(Settings s) {
@@ -255,4 +256,37 @@ class TfliteCnnNative implements CnnNative {
     }
     return out;
   }
+}
+
+List<int> _runNms(
+  List<IntRect> boxes,
+  List<double> scores, {
+  double iouThreshold = 0.5,
+  int maxOutputs = 20,
+}) {
+  if (boxes.isEmpty) {
+    return const <int>[];
+  }
+  final indices = List<int>.generate(boxes.length, (i) => i);
+  indices.sort((a, b) => scores[b].compareTo(scores[a]));
+  final selected = <int>[];
+  final suppressed = List<bool>.filled(boxes.length, false);
+  for (final idx in indices) {
+    if (suppressed[idx]) {
+      continue;
+    }
+    selected.add(idx);
+    if (selected.length >= maxOutputs) {
+      break;
+    }
+    for (final j in indices) {
+      if (j == idx || suppressed[j]) {
+        continue;
+      }
+      if (iou(boxes[idx], boxes[j]) > iouThreshold) {
+        suppressed[j] = true;
+      }
+    }
+  }
+  return selected;
 }

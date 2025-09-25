@@ -129,7 +129,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 const Text('高'),
               ],
             ),
-            subtitle: Text('現在: ${_settings.precision}'),
+            subtitle: Text('現在: ${_settings.precision} / ${Settings.maxPrecision}（高いほど微細差分まで検出）'),
           ),
           const SizedBox(height: 16),
         ],

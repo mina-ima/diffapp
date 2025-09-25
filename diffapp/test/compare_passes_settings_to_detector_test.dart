@@ -46,14 +46,14 @@ void main() {
     final right = SelectedImage(label: 'R', width: 16, height: 16, bytes: bytes);
 
     final spy = _SpyDetector();
-    final custom = const Settings(
+    const custom = Settings(
       detectColor: true,
       detectShape: false,
       detectPosition: true,
       detectSize: false,
       detectText: true,
       enableSound: false,
-      precision: 5,
+      precision: Settings.maxPrecision,
       minAreaPercent: Settings.defaultMinAreaPercent,
     );
 
@@ -73,7 +73,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
 
     expect(spy.lastSettings, isNotNull);
-    expect(spy.lastSettings!.precision, 5);
+    expect(spy.lastSettings!.precision, Settings.maxPrecision);
     expect(spy.lastSettings!.detectShape, isFalse);
     expect(spy.lastSettings!.enableSound, isFalse);
   });

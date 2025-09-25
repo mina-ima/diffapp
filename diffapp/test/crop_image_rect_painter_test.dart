@@ -50,8 +50,8 @@ void main() {
     // CroppedImage と同じロジック: 実画像ピクセル空間にスケールして drawImageRect
     final codec = await ui.instantiateImageCodec(bytes);
     final frame = await codec.getNextFrame();
-    final srcScaleX = originalW / normalizedW;
-    final srcScaleY = originalH / normalizedH;
+    const srcScaleX = originalW / normalizedW;
+    const srcScaleY = originalH / normalizedH;
     final src = ui.Rect.fromLTWH(
       rect.left * srcScaleX.toDouble(),
       rect.top * srcScaleY.toDouble(),
@@ -67,7 +67,7 @@ void main() {
     canvas.drawImageRect(
       frame.image,
       src,
-      ui.Rect.fromLTWH(0, 0, outW, outH),
+      const ui.Rect.fromLTWH(0, 0, outW, outH),
       ui.Paint(),
     );
     final picture = recorder.endRecording();

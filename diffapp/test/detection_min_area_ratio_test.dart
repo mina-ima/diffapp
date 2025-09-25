@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('最小面積5%未満は除外され、5%以上は検出される', () async {
     const w = 64, h = 64; // 解析空間は64x64（4096px）
-    final total = w * h;
+    const total = w * h;
     final fivePercent = (total * 0.05).ceil(); // 205px
 
     // 差分マップを作る（全体0.0、ブロックだけ0.9）
@@ -22,12 +22,13 @@ void main() {
     }
 
     // 小ブロック: 面積は fivePercent - 1 未満
-    final smallArea = fivePercent - 1; // 204
-    final smallSize = 8; // 8x8=64 (<205)
+    const smallSize = 8; // 8x8=64 (<205)
+    expect(smallSize * smallSize, lessThan(fivePercent));
     final diffSmall = makeMapWithBlock(2, 2, smallSize, smallSize);
 
     // 大ブロック: 面積は fivePercent 以上
-    final bigSize = 16; // 16x16=256 (>=205)
+    const bigSize = 16; // 16x16=256 (>=205)
+    expect(bigSize * bigSize, greaterThanOrEqualTo(fivePercent));
     final diffBig = makeMapWithBlock(20, 20, bigSize, bigSize);
 
     // 同時に存在させる
@@ -54,4 +55,3 @@ void main() {
     expect(rBoth.length, 1, reason: '小は除外・大のみ検出');
   });
 }
-

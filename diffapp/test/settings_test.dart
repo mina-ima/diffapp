@@ -25,14 +25,14 @@ void main() {
     test('copyWith validates precision range', () {
       final s = Settings.initial();
       expect(() => s.copyWith(precision: 0), throwsArgumentError);
-      expect(() => s.copyWith(precision: 6), throwsArgumentError);
+      expect(() => s.copyWith(precision: Settings.maxPrecision + 1), throwsArgumentError);
     });
 
     test('toJson/fromJson roundtrip', () {
       final s = Settings.initial().copyWith(
         detectColor: false,
         detectSize: false,
-        precision: 5,
+        precision: Settings.maxPrecision,
       );
       final json = s.toJson();
       final back = Settings.fromJson(json);

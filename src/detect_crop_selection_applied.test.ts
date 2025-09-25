@@ -2,31 +2,24 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 describe('検査は範囲指定部分のみを対象にする（Dartコードの存在検証）', () => {
-  it('compare_page.dart の _toGrayscale が srcRect（切り出し矩形）に対応している', () => {
+  it('compare_page.dart で整列後の矩形抽出と再サンプリングを行っている', () => {
     const t = readFileSync('diffapp/lib/screens/compare_page.dart', 'utf-8');
-    // 署名に Rect? srcRect のオプション引数が存在
-    expect(t).toMatch(/_toGrayscale\([^)]*\{\s*Rect\?\s*srcRect\s*\}\)/s);
-    // src = srcRect ?? (Offset.zero & srcSize) の分岐があり、drawImageRect に src が渡される
-    expect(t).toMatch(/src\s*=\s*srcRect\s*\?\?\s*\(Offset\.zero\s*&\s*srcSize\)/);
-    expect(t).toMatch(/drawImageRect\(image,\s*src,\s*dstRect,\s*paint\)/);
+    expect(t).toMatch(/final\s+alignmentRect\s*=\s*_leftRect/);
+    expect(t).toMatch(/_extractRgbaRegion\(/);
+    expect(t).toMatch(/_resizeRgbaBilinear\(/);
   });
 
-  it('選択範囲がある場合、_runDetection で左/右それぞれのクロップ矩形を算出している', () => {
+  it('選択範囲がある場合、解析座標へ再投影して検出ボックスを返している', () => {
     const t = readFileSync('diffapp/lib/screens/compare_page.dart', 'utf-8');
-    // 左の正規化矩形 _leftRect から元画像ピクセル空間の Rect.fromLTWH を計算
-    expect(t).toMatch(/_leftRect\s*!=\s*null/);
-    expect(t).toMatch(/Rect\.fromLTWH\([\s\S]*_leftRect/);
-    // 右は scaleRectBetweenSpaces でマッピング（または _rightRect を使用）
-    expect(t).toMatch(/scaleRectBetweenSpaces\(/);
-    // _toGrayscale 呼び出し時に srcRect を渡す
-    expect(t).toMatch(/_toGrayscale\(.*src(Rect)?:/s);
+    expect(t).toMatch(/final\s+double\s+analysisScaleX/);
+    expect(t).toMatch(/regionAnalysisWidth/);
+    expect(t).toMatch(/regionFactorX/);
+    expect(t).toMatch(/IntRect\(/);
   });
 
-  it('検出ボックスはフル画像の64x64座標へオフセット加算して返却している', () => {
-    const t = readFileSync('diffapp/lib/screens/compare_page.dart', 'utf-8');
-    // オフセット: leftOffsetX/leftOffsetY を足して IntRect を再構築
-    expect(t).toMatch(/leftOffsetX/);
-    expect(t).toMatch(/leftOffsetY/);
-    expect(t).toMatch(/IntRect\(\s*left:\s*\(d\.left\s*\+\s*leftOffsetX\)/);
+  it('ResultPage のオーバーレイは解析サイズと同期している', () => {
+    const t = readFileSync('diffapp/lib/screens/result_page.dart', 'utf-8');
+    expect(t).toMatch(/const\s+srcW\s*=\s*256/);
+    expect(t).toMatch(/const\s+srcH\s*=\s*256/);
   });
 });
