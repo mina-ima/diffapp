@@ -201,7 +201,7 @@ class _ComparePageState extends State<ComparePage>
         final dL = computeBriefDescriptors(grayL, targetW, targetH, kL);
         final dR = computeBriefDescriptors(grayR, targetW, targetH, kR);
         final m = matchDescriptorsHammingRatioCross(dL, dR, ratio: 0.82, crossCheck: true, maxMatches: 1000);
-        if (m.length >= 16) {
+        if (m.isNotEmpty) {
           final src = <Point2>[];
           final dst = <Point2>[];
           for (var i = 0; i < m.length && i < 300; i++) {
@@ -209,11 +209,44 @@ class _ComparePageState extends State<ComparePage>
             src.add(Point2(kL[qi].x.toDouble(), kL[qi].y.toDouble()));
             dst.add(Point2(kR[tj].x.toDouble(), kR[tj].y.toDouble()));
           }
-          final hr = estimateHomographyRansac(src, dst,
-              iterations: 600, inlierThreshold: 1.5, minInliers: 16);
-          final warped = warpRgbaByHomography(rgbaR0, targetW, targetH, hr.homography, targetW, targetH);
-          rgbaR = warped;
-          grayR = _rgbaToGray(warped);
+          var aligned = false;
+          if (m.length >= 16) {
+            try {
+              final hr = estimateHomographyRansac(
+                src,
+                dst,
+                iterations: 600,
+                inlierThreshold: 1.5,
+                minInliers: 16,
+              );
+              final warped = warpRgbaByHomography(
+                rgbaR0,
+                targetW,
+                targetH,
+                hr.homography,
+                targetW,
+                targetH,
+              );
+              rgbaR = warped;
+              grayR = _rgbaToGray(warped);
+              aligned = true;
+            } catch (_) {
+              aligned = false;
+            }
+          }
+          if (!aligned && m.length >= 8) {
+            final fallback = _applySimilarityFallback(
+              rgbaR0,
+              targetW,
+              targetH,
+              src,
+              dst,
+            );
+            if (fallback != null) {
+              rgbaR = fallback.$1;
+              grayR = fallback.$2;
+            }
+          }
         }
       }
     } catch (_) {
@@ -411,6 +444,42 @@ class _ComparePageState extends State<ComparePage>
     setState(() => _rightRect = mapped);
     // ログ: 左→右に矩形を適用したイベント
     debugPrint('[Diffapp][rect] left=${_leftRect} -> right=${_rightRect} (L$_leftNorm R$_rightNorm)');
+  }
+
+  (Uint8List, List<int>)? _applySimilarityFallback(
+    Uint8List rgba,
+    int width,
+    int height,
+    List<Point2> src,
+    List<Point2> dst,
+  ) {
+    if (src.length < 2 || dst.length < 2) return null;
+    final minPts = src.length >= 12 ? 12 : 8;
+    try {
+      final sim = estimateSimilarityTransformRansac(
+        src,
+        dst,
+        iterations: 400,
+        inlierThreshold: 1.2,
+        minInliers: minPts,
+      );
+      if (sim.inliersCount < minPts) return null;
+      final scale = sim.transform.scale;
+      if (!scale.isFinite || scale < 0.8 || scale > 1.25) {
+        return null;
+      }
+      final warped = warpRgbaBySimilarity(
+        rgba,
+        width,
+        height,
+        sim.transform,
+        width,
+        height,
+      );
+      return (warped, _rgbaToGray(warped));
+    } catch (_) {
+      return null;
+    }
   }
 
   @override

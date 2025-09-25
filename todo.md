@@ -217,6 +217,9 @@
 - [x] 彩度ベースの重み付けで色差ピークを強調し、低彩度領域の誤検出を抑制
   - 実装: `colorDiffMapRgbaRobust` に彩度エネルギー重みと差分寄与を追加
   - テスト: `src/color_diff_saturation_weight.test.ts`
+- [x] 特徴点が少ない場合の位置合わせフォールバック（相似変換RANSAC）
+  - 実装: `ComparePage` でホモグラフィ失敗時に `warpRgbaBySimilarity` を適用
+  - テスト: `src/compare_similarity_alignment.test.ts`
 - [x] 位置合わせ強化（Harris+BRIEF→Hamming 比率テスト+クロスチェック→RANSAC）
   - キーポイント数を増強・閾値緩和、比率テスト導入、RANSAC 反復/閾値の調整
   - 実装: `lib/features.dart`, `lib/screens/compare_page.dart`

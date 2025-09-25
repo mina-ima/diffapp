@@ -720,6 +720,36 @@ Uint8List warpRgbaByHomography(
   return out;
 }
 
+Homography _homographyFromSimilarity(SimilarityTransform t) {
+  final h11 = t.scale * t.cosTheta;
+  final h12 = -t.scale * t.sinTheta;
+  final h21 = t.scale * t.sinTheta;
+  final h22 = t.scale * t.cosTheta;
+  return Homography(
+    h11: h11,
+    h12: h12,
+    h13: t.tx,
+    h21: h21,
+    h22: h22,
+    h23: t.ty,
+    h31: 0.0,
+    h32: 0.0,
+    h33: 1.0,
+  );
+}
+
+Uint8List warpRgbaBySimilarity(
+  Uint8List src,
+  int srcW,
+  int srcH,
+  SimilarityTransform t,
+  int outW,
+  int outH,
+) {
+  final h = _homographyFromSimilarity(t);
+  return warpRgbaByHomography(src, srcW, srcH, h, outW, outH);
+}
+
 // Solve A x = b (square or overdetermined via normal equations) for small sizes.
 List<double> _solveLeastSquares(List<List<double>> a, List<double> b) {
   final m = a.length;
