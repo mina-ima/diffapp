@@ -306,13 +306,33 @@ class MockCnnDetector implements CnnDetector {
     int width,
     IntRect box, {
     required double peakScore,
-    double tailRatio = 0.15,
+    double tailRatio = 0.18,
   }) {
     final tailMean = boxTailMeanScore(diff, width, box, tailRatio: tailRatio);
-    final gate = math.max(0.16, peakScore * 0.45);
+    final gate = math.max(0.18, peakScore * 0.55);
     if (tailMean < gate) return null;
-    final combined = peakScore * 0.55 + tailMean * 0.45;
-    if (combined < 0.22) return null;
+
+    final area = box.width * box.height;
+    if (area <= 0) return null;
+    final hotThreshold = math.max(tailMean, peakScore * 0.68);
+    int hotCount = 0;
+    double hotAccum = 0;
+    for (var y = box.top; y < box.top + box.height; y++) {
+      final row = y * width;
+      for (var x = box.left; x < box.left + box.width; x++) {
+        final v = diff[row + x];
+        if (v >= hotThreshold) {
+          hotCount++;
+          hotAccum += v;
+        }
+      }
+    }
+    final minHot = math.max(6, (area * 0.05).round());
+    if (hotCount < minHot) return null;
+    final hotMean = hotAccum / hotCount;
+
+    final combined = (peakScore * 0.45) + (tailMean * 0.35) + (hotMean * 0.20);
+    if (combined < 0.26) return null;
     return combined.clamp(0.0, 1.0);
   }
 
