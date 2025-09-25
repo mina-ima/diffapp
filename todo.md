@@ -220,6 +220,9 @@
 - [x] 特徴点が少ない場合の位置合わせフォールバック（相似変換RANSAC）
   - 実装: `ComparePage` でホモグラフィ失敗時に `warpRgbaBySimilarity` を適用
   - テスト: `src/compare_similarity_alignment.test.ts`
+- [x] テール平均スコアと二段階NMSで重複検出とノイズを抑制
+  - 実装: `MockCnnDetector.detectFromDiffMap` の再スコアリング＆ `_runNms` 追加
+  - テスト: `src/detection_refine_dedup.test.ts`
 - [x] 位置合わせ強化（Harris+BRIEF→Hamming 比率テスト+クロスチェック→RANSAC）
   - キーポイント数を増強・閾値緩和、比率テスト導入、RANSAC 反復/閾値の調整
   - 実装: `lib/features.dart`, `lib/screens/compare_page.dart`

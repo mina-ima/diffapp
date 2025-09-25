@@ -135,21 +135,12 @@ class MockCnnDetector implements CnnDetector {
     }
 
     // NMS (keeping indices)
-    final indices = List<int>.generate(boxes.length, (i) => i);
-    indices.sort((a, b) => scores[b].compareTo(scores[a]));
-    final selected = <int>[];
-    final suppressed = List<bool>.filled(boxes.length, false);
-    for (final idx in indices) {
-      if (suppressed[idx]) continue;
-      selected.add(idx);
-      if (selected.length >= maxOutputs) break;
-      for (final j in indices) {
-        if (j == idx || suppressed[j]) continue;
-        if (iou(boxes[idx], boxes[j]) > iouThreshold) {
-          suppressed[j] = true;
-        }
-      }
-    }
+    var selected = _runNms(
+      boxes,
+      scores,
+      iouThreshold: iouThreshold,
+      maxOutputs: maxOutputs,
+    );
 
     // Fallback: if nothing detected, try adaptive threshold + dilation even if全体が弱い場合
     if (selected.isEmpty) {
@@ -190,31 +181,28 @@ class MockCnnDetector implements CnnDetector {
           ..clear()
           ..addAll(ns);
       }
-      final idx2 = List<int>.generate(boxes2.length, (i) => i);
-      idx2.sort((a, b) => scores2[b].compareTo(scores2[a]));
+      final idx2 = List<int>.generate(boxes2.length, (i) => i)
+        ..sort((a, b) => scores2[b].compareTo(scores2[a]));
       for (final i in idx2) {
-        bool sup = false;
-        for (final kept in selected) {
-          if (iou(boxes[kept], boxes2[i]) > iouThreshold) {
-            sup = true;
-            break;
-          }
-        }
-        if (!sup) {
-          // append as additional detections
-          boxes.add(boxes2[i]);
-          scores.add(scores2[i]);
-          selected.add(boxes.length - 1);
-          if (selected.length >= maxOutputs) break;
-        }
+        boxes.add(boxes2[i]);
+        scores.add(scores2[i]);
       }
+      selected = _runNms(
+        boxes,
+        scores,
+        iouThreshold: iouThreshold,
+        maxOutputs: maxOutputs,
+      );
     }
 
     // Refine each box to tighten around peaks and filter elongated large regions
     final cats = _enabledCategories(settings);
-    final out = <Detection>[];
+    final refinedBoxes = <IntRect>[];
+    final refinedScores = <double>[];
+    final refinedCats = <DetectionCategory>[];
     for (var i = 0; i < selected.length; i++) {
       final idxSel = selected[i];
+      final peak = scores[idxSel];
       var b = boxes[idxSel];
       // Slightly looser quantile to keep structure
       b = refineBoxByQuantile(diffMap, width, height, b, quantile: 0.82);
@@ -237,8 +225,37 @@ class MockCnnDetector implements CnnDetector {
       final area = b.width * b.height;
       final elongatedLarge = isElongated(b, ratio: 3.5) && area > (width * height * 0.12);
       if (area <= 2 || elongatedLarge) continue;
-      final cat = cats[i % cats.length];
-      out.add(Detection(box: b, score: scores[idxSel], category: cat));
+
+      final refinedScore = _refineScoreTailMean(
+        diffMap,
+        width,
+        b,
+        peakScore: peak,
+      );
+      if (refinedScore == null) {
+        continue;
+      }
+
+      refinedBoxes.add(b);
+      refinedScores.add(refinedScore);
+      refinedCats.add(cats[refinedCats.length % cats.length]);
+    }
+
+    final out = <Detection>[];
+    if (refinedBoxes.isNotEmpty) {
+      final secondPassIndices = _runNms(
+        refinedBoxes,
+        refinedScores,
+        iouThreshold: (iouThreshold * 0.85).clamp(0.2, 0.5),
+        maxOutputs: maxOutputs,
+      );
+      for (final idx in secondPassIndices) {
+        out.add(Detection(
+          box: refinedBoxes[idx],
+          score: refinedScores[idx],
+          category: refinedCats[idx],
+        ));
+      }
     }
     // If too few boxes, supplement with peak-based proposals
     if (out.length < 3) {
@@ -282,6 +299,46 @@ class MockCnnDetector implements CnnDetector {
       }
     }
     return out;
+  }
+
+  double? _refineScoreTailMean(
+    List<double> diff,
+    int width,
+    IntRect box, {
+    required double peakScore,
+    double tailRatio = 0.15,
+  }) {
+    final tailMean = boxTailMeanScore(diff, width, box, tailRatio: tailRatio);
+    final gate = math.max(0.16, peakScore * 0.45);
+    if (tailMean < gate) return null;
+    final combined = peakScore * 0.55 + tailMean * 0.45;
+    if (combined < 0.22) return null;
+    return combined.clamp(0.0, 1.0);
+  }
+
+  List<int> _runNms(
+    List<IntRect> boxes,
+    List<double> scores, {
+    double iouThreshold = 0.5,
+    int maxOutputs = 20,
+  }) {
+    if (boxes.isEmpty) return const <int>[];
+    final indices = List<int>.generate(boxes.length, (i) => i);
+    indices.sort((a, b) => scores[b].compareTo(scores[a]));
+    final selected = <int>[];
+    final suppressed = List<bool>.filled(boxes.length, false);
+    for (final idx in indices) {
+      if (suppressed[idx]) continue;
+      selected.add(idx);
+      if (selected.length >= maxOutputs) break;
+      for (final j in indices) {
+        if (j == idx || suppressed[j]) continue;
+        if (iou(boxes[idx], boxes[j]) > iouThreshold) {
+          suppressed[j] = true;
+        }
+      }
+    }
+    return selected;
   }
 
   List<Detection> _detectByTileClusters(
