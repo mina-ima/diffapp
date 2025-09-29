@@ -28,8 +28,9 @@ class TfliteCnnNative implements CnnNative {
   double _thresholdForPrecision(int p) {
     if (p < Settings.minPrecision) p = Settings.minPrecision;
     if (p > Settings.maxPrecision) p = Settings.maxPrecision;
-    final t = 0.9 - (p - 1) * 0.05;
-    return t.clamp(0.6, 0.9);
+    final steps = (p - Settings.minPrecision).toDouble();
+    final t = 0.92 - steps * 0.06;
+    return t.clamp(0.45, 0.9);
   }
 
   List<DetectionCategory> _enabledCategories(Settings s) {

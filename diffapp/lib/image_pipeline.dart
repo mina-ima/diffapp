@@ -419,13 +419,26 @@ List<double> colorDiffMapRgbaRobust(
     final dChroma = math.sqrt(dcr * dcr + dcg * dcg + dcb * dcb) / math.sqrt(3);
     final sat1 = _saturation(r1, g1, b1);
     final sat2 = _saturation(r2, g2, b2);
+    final luma1 = _lumaBt601(r1, g1, b1);
+    final luma2 = _lumaBt601(r2, g2, b2);
     final satAvgNorm = ((sat1 + sat2) * 0.5) / 255.0;
     final satAvg = satAvgNorm.clamp(0.0, 1.0);
     final chromaEnergy = math.sqrt(satAvg.toDouble());
-    final wChroma = 0.18 + 0.82 * chromaEnergy;
-    final wSat = 0.18 + 0.62 * chromaEnergy;
+    final wChroma = 0.32 + 0.68 * chromaEnergy;
+    final wSat = 0.22 + 0.55 * chromaEnergy;
     final satDelta = (sat1 - sat2).abs() / 255.0;
-    final d = (dChroma * wChroma + dRgb * 0.22 + satDelta * wSat).clamp(0.0, 1.0);
+    final lumaDelta = (luma1 - luma2).abs() / 255.0;
+    final wLuma = math.max(0.0, 1.0 - satAvg);
+    final hx1 = r1 - g1;
+    final hy1 = g1 - b1;
+    final hx2 = r2 - g2;
+    final hy2 = g2 - b2;
+    final mag1 = math.sqrt(hx1 * hx1 + hy1 * hy1) + eps;
+    final mag2 = math.sqrt(hx2 * hx2 + hy2 * hy2) + eps;
+    final hueCos = ((hx1 * hx2 + hy1 * hy2) / (mag1 * mag2)).clamp(-1.0, 1.0);
+    final dHue = (1.0 - hueCos) * 0.5;
+    final d = (dChroma * wChroma + dRgb * 0.12 + satDelta * wSat + dHue * 0.45 + lumaDelta * wLuma)
+        .clamp(0.0, 1.0);
     out[i] = d.isFinite ? d : 0.0;
   }
   return out;
@@ -435,6 +448,10 @@ double _saturation(double r, double g, double b) {
   final maxC = math.max(r, math.max(g, b));
   final minC = math.min(r, math.min(g, b));
   return maxC - minC;
+}
+
+double _lumaBt601(double r, double g, double b) {
+  return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
 // -----------------------------

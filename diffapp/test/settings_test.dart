@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Settings', () {
-    test('initial defaults: all ON, precision = 3', () {
+    test('initial defaults: all ON, precision = 5', () {
       final s = Settings.initial();
       expect(s.detectColor, isTrue);
       expect(s.detectShape, isTrue);
