@@ -1,5 +1,10 @@
 import type { InspectSettings, Channel, InputMode } from '../lib/types';
-import { DIGITAL_MODE_SETTINGS, PHOTO_MODE_SETTINGS } from '../lib/types';
+import {
+  DIGITAL_MODE_SETTINGS,
+  PHOTO_MODE_SETTINGS,
+  PHOTO_STRICT_SETTINGS,
+  LINEART_MODE_SETTINGS,
+} from '../lib/types';
 
 interface Props {
   value: InspectSettings;
@@ -21,7 +26,14 @@ export function ParamPanel({ value, onChange, onRun, canRun = false, loading = f
   const updateWeight = (k: Channel, v: number) =>
     onChange({ ...value, weights: { ...value.weights, [k]: v } });
   const applyMode = (mode: InputMode) => {
-    const preset = mode === 'photo' ? PHOTO_MODE_SETTINGS : DIGITAL_MODE_SETTINGS;
+    const preset =
+      mode === 'photo'
+        ? PHOTO_MODE_SETTINGS
+        : mode === 'photo-strict'
+          ? PHOTO_STRICT_SETTINGS
+          : mode === 'lineart'
+            ? LINEART_MODE_SETTINGS
+            : DIGITAL_MODE_SETTINGS;
     onChange({ ...value, ...preset, inputMode: mode });
   };
 
@@ -31,26 +43,45 @@ export function ParamPanel({ value, onChange, onRun, canRun = false, loading = f
 
       <div className="row">
         <label>入力モード</label>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           <button
             className={`btn ${value.inputMode === 'digital' ? 'primary' : ''}`}
-            style={{ flex: 1, minHeight: 0, padding: '6px 8px', fontSize: 12 }}
+            style={{ minHeight: 0, padding: '6px 8px', fontSize: 12 }}
             onClick={() => applyMode('digital')}
           >
             🖼️ デジタル
           </button>
           <button
             className={`btn ${value.inputMode === 'photo' ? 'primary' : ''}`}
-            style={{ flex: 1, minHeight: 0, padding: '6px 8px', fontSize: 12 }}
+            style={{ minHeight: 0, padding: '6px 8px', fontSize: 12 }}
             onClick={() => applyMode('photo')}
           >
-            📷 撮影モード
+            📷 撮影
+          </button>
+          <button
+            className={`btn ${value.inputMode === 'photo-strict' ? 'primary' : ''}`}
+            style={{ minHeight: 0, padding: '6px 8px', fontSize: 12 }}
+            onClick={() => applyMode('photo-strict')}
+          >
+            📷 撮影（厳格）
+          </button>
+          <button
+            className={`btn ${value.inputMode === 'lineart' ? 'primary' : ''}`}
+            style={{ minHeight: 0, padding: '6px 8px', fontSize: 12 }}
+            onClick={() => applyMode('lineart')}
+          >
+            ✏️ 線画
           </button>
         </div>
-        <div style={{ fontSize: 11, color: 'var(--ink-sub)', marginTop: 4 }}>
-          {value.inputMode === 'photo'
-            ? '撮影時の傾き・反射・ベゼル写り込みを抑えるプリセット'
-            : 'スクショ・デジタル画像向けの標準プリセット'}
+        <div style={{ fontSize: 11, color: 'var(--ink-sub)', marginTop: 4, lineHeight: 1.5 }}>
+          {
+            {
+              digital: 'スクショ・デジタル画像向けの標準プリセット',
+              photo: '撮影時の傾き・反射・ベゼル写り込みを抑える',
+              'photo-strict': '誤検出ゼロ優先。大きく明確な差分のみ拾う',
+              lineart: 'モノクロ線画専用。色を無視し線の位置ズレだけで比較',
+            }[value.inputMode]
+          }
         </div>
       </div>
 

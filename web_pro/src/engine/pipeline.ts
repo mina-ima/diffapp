@@ -16,6 +16,7 @@ import { alignRightToLeft } from './align/align';
 import { msssimDiffMap } from './channels/msssim';
 import { ciede2000Map } from './channels/ciede2000';
 import { edgeDiffMap } from './channels/edge';
+import { lineartDiffMap } from './channels/lineart';
 import {
   otsuBinarize,
   morphClose,
@@ -60,10 +61,12 @@ export async function runInspect(input: InspectInput): Promise<InspectResult> {
   const lBuf = analysisLeft.data;
   const rBuf = analysisRight.data;
 
-  // 3) 3 チャネル差分
+  // 3) 差分チャネル計算。lineartMode では line画 XOR 差分を edge チャネルに注入
   const mapMs = msssimDiffMap(lBuf, rBuf, W, H);
   const mapCe = ciede2000Map(lBuf, rBuf, W, H);
-  const mapEd = edgeDiffMap(lBuf, rBuf, W, H);
+  const mapEd = input.settings.lineartMode
+    ? lineartDiffMap(lBuf, rBuf, W, H)
+    : edgeDiffMap(lBuf, rBuf, W, H);
 
   const perChannel: Partial<Record<Channel, Float32Array>> = {
     msssim: mapMs,
