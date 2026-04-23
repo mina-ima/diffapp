@@ -79,9 +79,11 @@ export interface InspectResult {
   perChannel: Partial<Record<Channel, Float32Array>>;
   stats: {
     alignmentInliers: number;
-    alignmentMethod: 'translation' | 'none';
+    alignmentMethod: 'translation' | 'similarity' | 'none';
     shiftX: number;
     shiftY: number;
+    rotationDeg: number;
+    scale: number;
     elapsedMs: number;
     leftSize: { w: number; h: number };
     rightInputSize: { w: number; h: number };

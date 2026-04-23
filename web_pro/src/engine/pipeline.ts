@@ -136,6 +136,8 @@ export async function runInspect(input: InspectInput): Promise<InspectResult> {
       alignmentMethod: align.method,
       shiftX: align.shiftX,
       shiftY: align.shiftY,
+      rotationDeg: align.rotationDeg,
+      scale: align.scale,
       elapsedMs: performance.now() - started,
       leftSize: { w: input.leftWidth, h: input.leftHeight },
       rightInputSize: { w: input.rightWidth, h: input.rightHeight },

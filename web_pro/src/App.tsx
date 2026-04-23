@@ -44,7 +44,7 @@ export default function App() {
       });
       setResult(res);
       setLog(
-        `完了: ${(res.stats.elapsedMs / 1000).toFixed(2)}s / 整列=${res.stats.alignmentMethod}(Δx=${res.stats.shiftX} Δy=${res.stats.shiftY}) / 検出=${res.boxes.length}`,
+        `完了: ${(res.stats.elapsedMs / 1000).toFixed(2)}s / 整列=${res.stats.alignmentMethod}(Δx=${res.stats.shiftX} Δy=${res.stats.shiftY} θ=${res.stats.rotationDeg.toFixed(1)}° ×${res.stats.scale.toFixed(3)}) / 検出=${res.boxes.length}`,
       );
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));

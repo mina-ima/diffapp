@@ -68,8 +68,14 @@ export function ResultView({ result }: Props) {
         <div className="stat"><div>検出件数</div><div className="val">{result.boxes.length}</div></div>
         <div className="stat"><div>整列方式</div><div className="val">{result.stats.alignmentMethod}</div></div>
         <div className="stat">
-          <div>平行移動量</div>
-          <div className="val">Δx={result.stats.shiftX} Δy={result.stats.shiftY}</div>
+          <div>平行移動</div>
+          <div className="val" style={{ fontSize: 13 }}>Δx={result.stats.shiftX} Δy={result.stats.shiftY}</div>
+        </div>
+        <div className="stat">
+          <div>回転/拡縮</div>
+          <div className="val" style={{ fontSize: 13 }}>
+            {result.stats.rotationDeg.toFixed(1)}° / ×{result.stats.scale.toFixed(3)}
+          </div>
         </div>
         <div className="stat"><div>相関強度</div><div className="val">{result.stats.alignmentInliers}</div></div>
         <div className="stat"><div>処理時間</div><div className="val">{(result.stats.elapsedMs / 1000).toFixed(2)}s</div></div>
