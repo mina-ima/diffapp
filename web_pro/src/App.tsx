@@ -108,7 +108,13 @@ export default function App() {
         </div>
 
         <div className="card">
-          <ParamPanel value={settings} onChange={setSettings} />
+          <ParamPanel
+            value={settings}
+            onChange={setSettings}
+            onRun={handleRun}
+            canRun={canRun}
+            loading={loading}
+          />
         </div>
       </div>
     </div>

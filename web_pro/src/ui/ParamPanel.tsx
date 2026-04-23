@@ -3,6 +3,9 @@ import type { InspectSettings, Channel } from '../lib/types';
 interface Props {
   value: InspectSettings;
   onChange: (next: InspectSettings) => void;
+  onRun?: () => void;
+  canRun?: boolean;
+  loading?: boolean;
 }
 
 const CHANNEL_LABELS: Record<Channel, string> = {
@@ -11,7 +14,7 @@ const CHANNEL_LABELS: Record<Channel, string> = {
   edge: 'Sobel（エッジ）',
 };
 
-export function ParamPanel({ value, onChange }: Props) {
+export function ParamPanel({ value, onChange, onRun, canRun = false, loading = false }: Props) {
   const update = (patch: Partial<InspectSettings>) =>
     onChange({ ...value, ...patch });
   const updateWeight = (k: Channel, v: number) =>
@@ -20,6 +23,19 @@ export function ParamPanel({ value, onChange }: Props) {
   return (
     <div className="panel">
       <h2>検査設定</h2>
+
+      {onRun && (
+        <div className="row" style={{ marginBottom: 16 }}>
+          <button
+            className="btn primary"
+            disabled={!canRun}
+            onClick={onRun}
+            style={{ width: '100%' }}
+          >
+            {loading ? '検査中...' : '🔍 この設定で検査'}
+          </button>
+        </div>
+      )}
 
       <div className="row">
         <label>
@@ -96,6 +112,19 @@ export function ParamPanel({ value, onChange }: Props) {
           </div>
         ))}
       </div>
+
+      {onRun && (
+        <div className="row" style={{ marginTop: 8 }}>
+          <button
+            className="btn primary"
+            disabled={!canRun}
+            onClick={onRun}
+            style={{ width: '100%' }}
+          >
+            {loading ? '検査中...' : '🔍 この設定で再検査'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
