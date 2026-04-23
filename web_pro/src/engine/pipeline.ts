@@ -9,6 +9,7 @@ import {
   cropRgba,
   normalizeFloat,
   makeImageData,
+  gaussianBlur,
 } from '../lib/image';
 import { matchLumaHistogramRgba } from './align/preprocess';
 import { alignRightToLeft } from './align/align';
@@ -78,7 +79,9 @@ export async function runInspect(input: InspectInput): Promise<InspectResult> {
       (weights.msssim * mapMs[i] + weights.ciede * mapCe[i] + weights.edge * mapEd[i]) /
       Math.max(0.001, wSum);
   }
-  const heatmap = normalizeFloat(combined);
+  // 合成マップをブラーして位置ズレノイズ・ハロー・エッジずれを吸収
+  const blurred = gaussianBlur(combined, W, H, input.settings.blurRadius);
+  const heatmap = normalizeFloat(blurred);
 
   // 4) 後処理 → 検出矩形
   //   感度 s を「Otsu 閾値調整」と「最終スコア下限」の両方に連動させる:

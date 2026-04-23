@@ -1,4 +1,5 @@
-import type { InspectSettings, Channel } from '../lib/types';
+import type { InspectSettings, Channel, InputMode } from '../lib/types';
+import { DIGITAL_MODE_SETTINGS, PHOTO_MODE_SETTINGS } from '../lib/types';
 
 interface Props {
   value: InspectSettings;
@@ -19,10 +20,39 @@ export function ParamPanel({ value, onChange, onRun, canRun = false, loading = f
     onChange({ ...value, ...patch });
   const updateWeight = (k: Channel, v: number) =>
     onChange({ ...value, weights: { ...value.weights, [k]: v } });
+  const applyMode = (mode: InputMode) => {
+    const preset = mode === 'photo' ? PHOTO_MODE_SETTINGS : DIGITAL_MODE_SETTINGS;
+    onChange({ ...value, ...preset, inputMode: mode });
+  };
 
   return (
     <div className="panel">
       <h2>検査設定</h2>
+
+      <div className="row">
+        <label>入力モード</label>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            className={`btn ${value.inputMode === 'digital' ? 'primary' : ''}`}
+            style={{ flex: 1, minHeight: 0, padding: '6px 8px', fontSize: 12 }}
+            onClick={() => applyMode('digital')}
+          >
+            🖼️ デジタル
+          </button>
+          <button
+            className={`btn ${value.inputMode === 'photo' ? 'primary' : ''}`}
+            style={{ flex: 1, minHeight: 0, padding: '6px 8px', fontSize: 12 }}
+            onClick={() => applyMode('photo')}
+          >
+            📷 撮影モード
+          </button>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--ink-sub)', marginTop: 4 }}>
+          {value.inputMode === 'photo'
+            ? '撮影時の傾き・反射・ベゼル写り込みを抑えるプリセット'
+            : 'スクショ・デジタル画像向けの標準プリセット'}
+        </div>
+      </div>
 
       {onRun && (
         <div className="row" style={{ marginBottom: 16 }}>

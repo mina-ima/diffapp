@@ -89,6 +89,53 @@ export function makeImageData(
   return new ImageData(buf, width, height);
 }
 
+/**
+ * 可分ガウシアンブラー。差分マップの位置ズレ吸収とノイズ平滑化に使う。
+ * radius 2 ≒ σ≈1, radius 3 ≒ σ≈1.5 相当。
+ */
+export function gaussianBlur(
+  src: Float32Array,
+  w: number,
+  h: number,
+  radius = 2,
+): Float32Array {
+  if (radius <= 0) return src;
+  const sigma = radius / 2;
+  const len = radius * 2 + 1;
+  const kernel = new Float32Array(len);
+  let ksum = 0;
+  for (let i = 0; i < len; i++) {
+    const x = i - radius;
+    kernel[i] = Math.exp(-(x * x) / (2 * sigma * sigma));
+    ksum += kernel[i];
+  }
+  for (let i = 0; i < len; i++) kernel[i] /= ksum;
+
+  const tmp = new Float32Array(src.length);
+  const out = new Float32Array(src.length);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let acc = 0;
+      for (let k = -radius; k <= radius; k++) {
+        const xx = Math.min(w - 1, Math.max(0, x + k));
+        acc += src[y * w + xx] * kernel[k + radius];
+      }
+      tmp[y * w + x] = acc;
+    }
+  }
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let acc = 0;
+      for (let k = -radius; k <= radius; k++) {
+        const yy = Math.min(h - 1, Math.max(0, y + k));
+        acc += tmp[yy * w + x] * kernel[k + radius];
+      }
+      out[y * w + x] = acc;
+    }
+  }
+  return out;
+}
+
 export function normalizeFloat(src: Float32Array): Float32Array {
   let lo = Infinity;
   let hi = -Infinity;
