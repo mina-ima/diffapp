@@ -16,7 +16,7 @@ const CORNER_COUNT = 300;
 const PATCH_RADIUS = 5; // 11x11 パッチ
 const RANSAC_ITER = 600;
 const RANSAC_THRESH = 4; // 解析解像度基準のピクセル
-const NCC_THRESH = 0.7;
+const NCC_THRESH = 0.6;
 
 export interface AutoAlignResult {
   alignedRight: ImageData;
@@ -70,15 +70,22 @@ export function autoAlign(left: ImageData, right: ImageData): AutoAlignResult {
   // H は「右（解析空間）→左（解析空間）」座標の対応。
   // 元解像度の右画像を左画像サイズへワープするには:
   //   原寸右 → 解析右 → (H) → 解析左 → 原寸左
-  // 原寸左座標 = (1/scaleL) * 解析左座標
-  // 解析左座標 = H * 解析右座標
-  // 解析右座標 = scaleR * 原寸右座標
-  // ⇒ 原寸左座標 = (1/scaleL) * H * scaleR * 原寸右座標
+  // H は「解析右 → 解析左」。これを「原寸右 → 原寸左」へ変換する:
+  //   原寸左 = S_L^{-1} × H × S_R × 原寸右
+  //   S_L = diag(scaleL, scaleL, 1),  S_R = diag(scaleR, scaleR, 1)
+  //
+  // 行列合成を展開すると:
+  //   Hfull[0..1] = H[0..1] * (scaleR / scaleL)
+  //   Hfull[2]    = H[2] / scaleL
+  //   Hfull[3..4] = H[3..4] * (scaleR / scaleL)
+  //   Hfull[5]    = H[5] / scaleL
+  //   Hfull[6..7] = H[6..7] * scaleR   ← ここが bug の元。scaleR を掛けるのが正解
+  //   Hfull[8]    = H[8]
   const k = scaleR / scaleL;
   const Hfull = [
     H[0] * k, H[1] * k, H[2] / scaleL,
     H[3] * k, H[4] * k, H[5] / scaleL,
-    H[6] * k, H[7] * k, H[8],
+    H[6] * scaleR, H[7] * scaleR, H[8],
   ];
 
   const Hinv = invert3x3(Hfull);

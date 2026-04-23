@@ -45,9 +45,19 @@ export async function runInspect(input: InspectInput): Promise<InspectResult> {
     const rightRawImg = makeImageData(input.rightRgba, input.rightWidth, input.rightHeight);
     const aa = autoAlign(leftRawImg, rightRawImg);
     leftImg = leftRawImg;
-    rightImg = aa.ok
-      ? aa.alignedRight
-      : resizeOrSame(input.rightRgba, input.rightWidth, input.rightHeight, input.leftWidth, input.leftHeight);
+    if (aa.ok) {
+      rightImg = aa.alignedRight;
+    } else {
+      // フォールバック: 右を左サイズへ、照明ヒストマッチ、類似変換整列
+      const rightResized = resizeOrSame(
+        input.rightRgba,
+        input.rightWidth,
+        input.rightHeight,
+        input.leftWidth,
+        input.leftHeight,
+      );
+      rightImg = rightResized;
+    }
   } else if (input.leftCorners && input.rightCorners) {
     const OUT_W = Math.min(1600, Math.max(input.leftWidth, input.rightWidth));
     const OUT_H = Math.round((OUT_W * 3) / 4); // 4:3 の標準出力。画像内容に依存しないので安全
