@@ -11,6 +11,8 @@ import {
   makeImageData,
   gaussianBlur,
   warpPerspectiveRgba,
+  extractValidMask,
+  erodeMask,
 } from '../lib/image';
 import { computeHomography, invert3x3 } from '../lib/homography';
 import type { CornerSet } from '../lib/types';
@@ -125,6 +127,13 @@ export async function runInspect(input: InspectInput): Promise<InspectResult> {
   }
   // 合成マップをブラーして位置ズレノイズ・ハロー・エッジずれを吸収
   const blurred = gaussianBlur(combined, W, H, input.settings.blurRadius);
+
+  // 無効マスク（ワープで範囲外になった領域）をゼロにして差分から除外
+  const validMask = erodeMask(extractValidMask(rBuf, W, H), W, H, 3);
+  for (let i = 0; i < blurred.length; i++) {
+    if (!validMask[i]) blurred[i] = 0;
+  }
+
   const heatmap = normalizeFloat(blurred);
 
   // 4) 後処理 → 検出矩形

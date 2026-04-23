@@ -92,7 +92,8 @@ export function warpPerspectiveRgba(
       const sy = (H_inv[3] * x + H_inv[4] * y + H_inv[5]) / w;
       const di = (y * dw + x) * 4;
       if (sx < 0 || sx >= sw - 1 || sy < 0 || sy >= sh - 1) {
-        out[di + 3] = 255;
+        // 範囲外 = 比較不能領域。alpha = 0 にして後段の差分計算から除外できるようにする
+        out[di + 3] = 0;
         continue;
       }
       const x0 = Math.floor(sx);
@@ -114,6 +115,55 @@ export function warpPerspectiveRgba(
     }
   }
   return out;
+}
+
+/**
+ * ImageData の alpha チャネルから有効マスク（1=比較可能、0=無効）を抽出する。
+ * ワープで範囲外になったピクセルは alpha が 0 になっている。
+ */
+export function extractValidMask(rgba: Uint8ClampedArray, w: number, h: number): Uint8Array {
+  const mask = new Uint8Array(w * h);
+  for (let i = 0; i < mask.length; i++) {
+    mask[i] = rgba[i * 4 + 3] > 200 ? 1 : 0;
+  }
+  return mask;
+}
+
+/**
+ * バイナリマスクに対し 3x3 erosion を iterations 回適用する。
+ * ワープ境界で 1 画素分の interp 混入を除外するために使う。
+ */
+export function erodeMask(mask: Uint8Array, w: number, h: number, iterations = 1): Uint8Array {
+  let cur = mask;
+  for (let it = 0; it < iterations; it++) {
+    const out = new Uint8Array(cur.length);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let v = 1;
+        for (let dy = -1; dy <= 1 && v; dy++) {
+          const yy = y + dy;
+          if (yy < 0 || yy >= h) {
+            v = 0;
+            break;
+          }
+          for (let dx = -1; dx <= 1; dx++) {
+            const xx = x + dx;
+            if (xx < 0 || xx >= w) {
+              v = 0;
+              break;
+            }
+            if (!cur[yy * w + xx]) {
+              v = 0;
+              break;
+            }
+          }
+        }
+        out[y * w + x] = v;
+      }
+    }
+    cur = out;
+  }
+  return cur;
 }
 
 /**
