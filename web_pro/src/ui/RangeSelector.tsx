@@ -17,28 +17,25 @@ interface Props {
 
 /**
  * 左画像の上でドラッグして矩形を描画するコンポーネント。
- * モバイル配慮:
- *   - デフォルトは「スクロール可能モード」(範囲選択ドラッグは無効)
- *   - 「✏️ 範囲を指定」ボタンで選択モードONにすると、ドラッグで範囲指定
- *   - 画像サイズは max-height: 50vh で制約、狭い画面では縦1列
+ * 座標系: 左画像の原寸ピクセル。object-fit: contain による余白を考慮する。
  */
 export function RangeSelector({ left, right, value, onChange }: Props) {
   const interactRef = useRef<HTMLDivElement>(null);
+  const rightRef = useRef<HTMLDivElement>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [dragCurrent, setDragCurrent] = useState<{ x: number; y: number } | null>(null);
   const [selectMode, setSelectMode] = useState(false);
 
-  // 画像差し替えで選択モード/矩形をリセット
   useEffect(() => {
     setSelectMode(false);
   }, [left.url, right.url]);
 
-  const toImageCoords = useCallback(
-    (clientX: number, clientY: number, el: HTMLElement) => {
+  /** 画像表示領域（contain 後の実サイズとコンテナ内オフセット）を計算 */
+  const computeDisplayBox = useCallback(
+    (el: HTMLElement) => {
       const rect = el.getBoundingClientRect();
       const naturalAspect = left.width / left.height;
       const boxAspect = rect.width / rect.height;
-      // object-fit: contain を使うので、表示領域と実画像領域のオフセットを計算
       let dispW = rect.width;
       let dispH = rect.height;
       let offX = 0;
@@ -50,13 +47,22 @@ export function RangeSelector({ left, right, value, onChange }: Props) {
         dispW = rect.height * naturalAspect;
         offX = (rect.width - dispW) / 2;
       }
+      return { offX, offY, dispW, dispH };
+    },
+    [left.width, left.height],
+  );
+
+  const toImageCoords = useCallback(
+    (clientX: number, clientY: number, el: HTMLElement) => {
+      const rect = el.getBoundingClientRect();
+      const { offX, offY, dispW, dispH } = computeDisplayBox(el);
       const localX = clientX - rect.left - offX;
       const localY = clientY - rect.top - offY;
       const x = (localX / dispW) * left.width;
       const y = (localY / dispH) * left.height;
       return { x: clamp(x, 0, left.width), y: clamp(y, 0, left.height) };
     },
-    [left.width, left.height],
+    [computeDisplayBox, left.width, left.height],
   );
 
   const overlayRect = useMemo(() => {
@@ -98,7 +104,7 @@ export function RangeSelector({ left, right, value, onChange }: Props) {
     } else {
       onChange({ x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) });
     }
-    setSelectMode(false); // 選択完了で自動OFF
+    setSelectMode(false);
   };
 
   return (
@@ -140,49 +146,39 @@ export function RangeSelector({ left, right, value, onChange }: Props) {
             src={left.url}
             alt="left"
             draggable={false}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              display: 'block',
-              userSelect: 'none',
-              pointerEvents: 'none',
-            }}
+            style={imageStyle}
           />
           {overlayRect && (
             <RectOverlay
+              containerRef={interactRef}
               rect={overlayRect}
               imgW={left.width}
               imgH={left.height}
               color="rgba(11, 91, 211, 0.9)"
               fill="rgba(11, 91, 211, 0.12)"
               label="範囲"
+              computeBox={computeDisplayBox}
             />
           )}
           <span className="range-badge">L（この画像上でドラッグ）</span>
         </div>
-        <div className="range-image">
+        <div ref={rightRef} className="range-image">
           <img
             src={right.url}
             alt="right"
             draggable={false}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              display: 'block',
-              userSelect: 'none',
-              pointerEvents: 'none',
-            }}
+            style={imageStyle}
           />
           {value && (
             <RectOverlay
+              containerRef={rightRef}
               rect={value}
               imgW={left.width}
               imgH={left.height}
               color="rgba(217, 44, 76, 0.9)"
               fill="rgba(217, 44, 76, 0.12)"
               label="同座標"
+              computeBox={computeDisplayBox}
             />
           )}
           <span className="range-badge">R</span>
@@ -199,78 +195,80 @@ export function RangeSelector({ left, right, value, onChange }: Props) {
   );
 }
 
+const imageStyle: React.CSSProperties = {
+  width: '100%',
+  height: '100%',
+  objectFit: 'contain',
+  display: 'block',
+  userSelect: 'none',
+  pointerEvents: 'none',
+};
+
 function RectOverlay({
+  containerRef,
   rect,
   imgW,
   imgH,
   color,
   fill,
   label,
+  computeBox,
 }: {
+  containerRef: React.RefObject<HTMLDivElement>;
   rect: CropRect;
   imgW: number;
   imgH: number;
   color: string;
   fill: string;
   label: string;
+  computeBox: (el: HTMLElement) => { offX: number; offY: number; dispW: number; dispH: number };
 }) {
-  // object-fit: contain 下での座標は % で指定（親コンテナに対する割合）
-  const leftPct = (rect.x / imgW) * 100;
-  const topPct = (rect.y / imgH) * 100;
-  const widthPct = (rect.w / imgW) * 100;
-  const heightPct = (rect.h / imgH) * 100;
-  // object-fit 領域は親より狭い場合があるので、inner wrapper で合わせる
+  // コンテナのサイズ変化に応じて overlay を再計算するトリガ
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const el = containerRef.current;
+    const ro = new ResizeObserver(() => forceTick((v) => v + 1));
+    ro.observe(el);
+    const onWin = () => forceTick((v) => v + 1);
+    window.addEventListener('resize', onWin);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', onWin);
+    };
+  }, [containerRef]);
+
+  const el = containerRef.current;
+  if (!el) return null;
+  const { offX, offY, dispW, dispH } = computeBox(el);
+  const style: React.CSSProperties = {
+    position: 'absolute',
+    left: offX + (rect.x / imgW) * dispW,
+    top: offY + (rect.y / imgH) * dispH,
+    width: (rect.w / imgW) * dispW,
+    height: (rect.h / imgH) * dispH,
+    border: `2px solid ${color}`,
+    background: fill,
+    boxSizing: 'border-box',
+    pointerEvents: 'none',
+  };
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        pointerEvents: 'none',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <div
+    <div style={style}>
+      <span
         style={{
-          position: 'relative',
-          width: '100%',
-          height: '100%',
-          maxWidth: '100%',
-          maxHeight: '100%',
-          aspectRatio: `${imgW} / ${imgH}`,
-          margin: 'auto',
+          position: 'absolute',
+          top: -18,
+          left: 0,
+          fontSize: 10,
+          background: color,
+          color: '#fff',
+          padding: '1px 6px',
+          borderRadius: 3,
+          whiteSpace: 'nowrap',
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            left: `${leftPct}%`,
-            top: `${topPct}%`,
-            width: `${widthPct}%`,
-            height: `${heightPct}%`,
-            border: `2px solid ${color}`,
-            background: fill,
-            boxSizing: 'border-box',
-          }}
-        >
-          <span
-            style={{
-              position: 'absolute',
-              top: -18,
-              left: 0,
-              fontSize: 10,
-              background: color,
-              color: '#fff',
-              padding: '1px 6px',
-              borderRadius: 3,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {label}
-          </span>
-        </div>
-      </div>
+        {label}
+      </span>
     </div>
   );
 }
