@@ -99,6 +99,13 @@ export interface InspectResult {
   };
 }
 
+export interface CornerSet {
+  tl: { x: number; y: number };
+  tr: { x: number; y: number };
+  br: { x: number; y: number };
+  bl: { x: number; y: number };
+}
+
 export interface InspectInput {
   leftRgba: Uint8ClampedArray;
   leftWidth: number;
@@ -108,4 +115,9 @@ export interface InspectInput {
   rightHeight: number;
   cropLeft?: { x: number; y: number; w: number; h: number };
   settings: InspectSettings;
+  /** 4点透視補正用の四隅座標（各画像の原寸ピクセル座標） */
+  leftCorners?: CornerSet;
+  rightCorners?: CornerSet;
+  /** true なら Harris + NCC + RANSAC による自動特徴点整列を行う（4点指定より優先） */
+  autoAlign?: boolean;
 }

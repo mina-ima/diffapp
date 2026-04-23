@@ -71,6 +71,52 @@ export function clamp(v: number, lo: number, hi: number): number {
 }
 
 /**
+ * 射影変換（ホモグラフィ）を RGBA 画像に適用する。
+ * H_inv は「出力座標 → 入力座標」の逆変換行列（9要素、row-major）。
+ * バイリニア補間で出力画像を生成。
+ */
+export function warpPerspectiveRgba(
+  src: Uint8ClampedArray,
+  sw: number,
+  sh: number,
+  dw: number,
+  dh: number,
+  H_inv: number[],
+): Uint8ClampedArray {
+  const out = new Uint8ClampedArray(dw * dh * 4);
+  for (let y = 0; y < dh; y++) {
+    for (let x = 0; x < dw; x++) {
+      const w = H_inv[6] * x + H_inv[7] * y + H_inv[8];
+      if (Math.abs(w) < 1e-8) continue;
+      const sx = (H_inv[0] * x + H_inv[1] * y + H_inv[2]) / w;
+      const sy = (H_inv[3] * x + H_inv[4] * y + H_inv[5]) / w;
+      const di = (y * dw + x) * 4;
+      if (sx < 0 || sx >= sw - 1 || sy < 0 || sy >= sh - 1) {
+        out[di + 3] = 255;
+        continue;
+      }
+      const x0 = Math.floor(sx);
+      const y0 = Math.floor(sy);
+      const wx = sx - x0;
+      const wy = sy - y0;
+      const i00 = (y0 * sw + x0) * 4;
+      const i10 = (y0 * sw + x0 + 1) * 4;
+      const i01 = ((y0 + 1) * sw + x0) * 4;
+      const i11 = ((y0 + 1) * sw + x0 + 1) * 4;
+      for (let c = 0; c < 3; c++) {
+        out[di + c] =
+          src[i00 + c] * (1 - wx) * (1 - wy) +
+          src[i10 + c] * wx * (1 - wy) +
+          src[i01 + c] * (1 - wx) * wy +
+          src[i11 + c] * wx * wy;
+      }
+      out[di + 3] = 255;
+    }
+  }
+  return out;
+}
+
+/**
  * 新しい ArrayBuffer を確保した Uint8ClampedArray でラップして ImageData を作る。
  * TS 5 の厳しい型推論（ArrayBufferLike vs ArrayBuffer）による互換問題を回避するため、
  * すべての ImageData 生成箇所はこのヘルパーを経由する。

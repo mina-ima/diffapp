@@ -10,7 +10,10 @@ import {
   normalizeFloat,
   makeImageData,
   gaussianBlur,
+  warpPerspectiveRgba,
 } from '../lib/image';
+import { computeHomography, invert3x3 } from '../lib/homography';
+import type { CornerSet } from '../lib/types';
 import { matchLumaHistogramRgba } from './align/preprocess';
 import { alignRightToLeft } from './align/align';
 import { msssimDiffMap } from './channels/msssim';
@@ -26,28 +29,55 @@ import {
 import { extractRegions, nms } from './postprocess/regions';
 import { detectByTileClusters } from './postprocess/tile_fallback';
 import { detectPeaks } from './postprocess/peaks';
+import { autoAlign } from './align/auto_align';
 
 export async function runInspect(input: InspectInput): Promise<InspectResult> {
   const started = performance.now();
 
-  const leftImg = makeImageData(input.leftRgba, input.leftWidth, input.leftHeight);
-
-  // 0) 左右の解像度が違うと全領域が差分扱いになるので、右を左のサイズに揃える
+  // 0) 画像準備
+  //   (a) autoAlign が ON の場合は Harris+NCC+RANSAC で自動整列（推奨）
+  //   (b) 4隅指定がある場合は透視変換で正規化長方形にワープ
+  //   (c) それ以外は原寸のまま、右を左のサイズに揃える
+  let leftImg: ImageData;
   let rightImg: ImageData;
-  if (
-    input.rightWidth === input.leftWidth &&
-    input.rightHeight === input.leftHeight
-  ) {
-    rightImg = makeImageData(input.rightRgba, input.rightWidth, input.rightHeight);
-  } else {
-    const resized = resizeRgbaBilinear(
-      input.rightRgba,
-      input.rightWidth,
-      input.rightHeight,
-      input.leftWidth,
-      input.leftHeight,
+  if (input.autoAlign) {
+    const leftRawImg = makeImageData(input.leftRgba, input.leftWidth, input.leftHeight);
+    const rightRawImg = makeImageData(input.rightRgba, input.rightWidth, input.rightHeight);
+    const aa = autoAlign(leftRawImg, rightRawImg);
+    leftImg = leftRawImg;
+    rightImg = aa.ok
+      ? aa.alignedRight
+      : resizeOrSame(input.rightRgba, input.rightWidth, input.rightHeight, input.leftWidth, input.leftHeight);
+  } else if (input.leftCorners && input.rightCorners) {
+    const OUT_W = Math.min(1600, Math.max(input.leftWidth, input.rightWidth));
+    const OUT_H = Math.round((OUT_W * 3) / 4); // 4:3 の標準出力。画像内容に依存しないので安全
+    leftImg = makeImageData(
+      warpToNormalizedRect(input.leftRgba, input.leftWidth, input.leftHeight, input.leftCorners, OUT_W, OUT_H),
+      OUT_W,
+      OUT_H,
     );
-    rightImg = makeImageData(resized, input.leftWidth, input.leftHeight);
+    rightImg = makeImageData(
+      warpToNormalizedRect(input.rightRgba, input.rightWidth, input.rightHeight, input.rightCorners, OUT_W, OUT_H),
+      OUT_W,
+      OUT_H,
+    );
+  } else {
+    leftImg = makeImageData(input.leftRgba, input.leftWidth, input.leftHeight);
+    if (
+      input.rightWidth === input.leftWidth &&
+      input.rightHeight === input.leftHeight
+    ) {
+      rightImg = makeImageData(input.rightRgba, input.rightWidth, input.rightHeight);
+    } else {
+      const resized = resizeRgbaBilinear(
+        input.rightRgba,
+        input.rightWidth,
+        input.rightHeight,
+        input.leftWidth,
+        input.leftHeight,
+      );
+      rightImg = makeImageData(resized, input.leftWidth, input.leftHeight);
+    }
   }
 
   // 1) 色合わせのみ軽く（ヒスト平坦化は色差を潰すので外す）→ フェーズ相関で整列
@@ -162,6 +192,41 @@ export async function runInspect(input: InspectInput): Promise<InspectResult> {
         input.leftWidth === input.rightWidth && input.leftHeight === input.rightHeight,
     },
   };
+}
+
+/** 解像度が違う場合のみリサイズ、同じならそのまま ImageData 化 */
+function resizeOrSame(
+  src: Uint8ClampedArray,
+  sw: number,
+  sh: number,
+  dw: number,
+  dh: number,
+): ImageData {
+  if (sw === dw && sh === dh) return makeImageData(src, sw, sh);
+  const resized = resizeRgbaBilinear(src, sw, sh, dw, dh);
+  return makeImageData(resized, dw, dh);
+}
+
+/** 指定 4 点を正規化長方形に射影変換してワープする */
+function warpToNormalizedRect(
+  src: Uint8ClampedArray,
+  sw: number,
+  sh: number,
+  corners: CornerSet,
+  outW: number,
+  outH: number,
+): Uint8ClampedArray {
+  // src 4 点 → 長方形 4 点への射影
+  const srcPts = [corners.tl, corners.tr, corners.br, corners.bl];
+  const dstPts = [
+    { x: 0, y: 0 },
+    { x: outW, y: 0 },
+    { x: outW, y: outH },
+    { x: 0, y: outH },
+  ];
+  const H = computeHomography(srcPts, dstPts);
+  const Hinv = invert3x3(H);
+  return warpPerspectiveRgba(src, sw, sh, outW, outH, Hinv);
 }
 
 function cropToAnalysis(

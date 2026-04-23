@@ -351,6 +351,42 @@ body {
   margin-top: 6px;
 }
 
+.corner-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+@media (max-width: 720px) {
+  .corner-pair {
+    grid-template-columns: 1fr;
+  }
+}
+
+.corner-calib {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.corner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.corner-stage {
+  position: relative;
+  background: #111;
+  border-radius: 6px;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  cursor: crosshair;
+}
+
 .camera-overlay {
   position: fixed;
   inset: 0;

@@ -3,6 +3,7 @@ import { ImageDrop, type LoadedImage } from './ui/ImageDrop';
 import { ParamPanel } from './ui/ParamPanel';
 import { ResultView } from './ui/ResultView';
 import { RangeSelector, type CropRect } from './ui/RangeSelector';
+import { CornerCalibration, defaultCorners, type Corners } from './ui/CornerCalibration';
 import { DEFAULT_SETTINGS, type InspectResult, type InspectSettings } from './lib/types';
 import { runInspect } from './engine/pipeline';
 
@@ -15,11 +16,22 @@ export default function App() {
   const [err, setErr] = useState<string | null>(null);
   const [log, setLog] = useState<string>('');
   const [cropRect, setCropRect] = useState<CropRect | null>(null);
+  const [useAutoAlign, setUseAutoAlign] = useState(true);
+  const [useCornerCalibration, setUseCornerCalibration] = useState(false);
+  const [leftCorners, setLeftCorners] = useState<Corners | null>(null);
+  const [rightCorners, setRightCorners] = useState<Corners | null>(null);
 
-  // 画像を差し替えたら範囲をリセット
   useEffect(() => {
     setCropRect(null);
+    setLeftCorners(null);
+    setRightCorners(null);
+    setUseCornerCalibration(false);
   }, [left?.url, right?.url]);
+
+  useEffect(() => {
+    if (useCornerCalibration && left && !leftCorners) setLeftCorners(defaultCorners(left));
+    if (useCornerCalibration && right && !rightCorners) setRightCorners(defaultCorners(right));
+  }, [useCornerCalibration, left, right, leftCorners, rightCorners]);
 
   const canRun = useMemo(
     () => !!left && !!right && !loading,
@@ -41,6 +53,9 @@ export default function App() {
         rightHeight: right.height,
         cropLeft: cropRect ?? undefined,
         settings,
+        autoAlign: useAutoAlign,
+        leftCorners: !useAutoAlign && useCornerCalibration ? leftCorners ?? undefined : undefined,
+        rightCorners: !useAutoAlign && useCornerCalibration ? rightCorners ?? undefined : undefined,
       });
       setResult(res);
       setLog(
@@ -51,7 +66,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [left, right, settings, cropRect]);
+  }, [left, right, settings, cropRect, useAutoAlign, useCornerCalibration, leftCorners, rightCorners]);
 
   return (
     <div className="app">
@@ -71,12 +86,49 @@ export default function App() {
               <ImageDrop label="右画像（比較対象）" badge="R" value={right} onChange={setRight} />
             </div>
             {left && right && (
-              <RangeSelector
-                left={left}
-                right={right}
-                value={cropRect}
-                onChange={setCropRect}
-              />
+              <>
+                <div style={{ marginTop: 12, padding: '8px 10px', background: '#f2f4fa', borderRadius: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <input
+                      type="checkbox"
+                      checked={useAutoAlign}
+                      onChange={(e) => setUseAutoAlign(e.target.checked)}
+                    />
+                    🤖 自動整列（Harris 特徴点 + RANSAC ホモグラフィ推定、撮影画像では必須）
+                  </label>
+                  <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, opacity: useAutoAlign ? 0.5 : 1 }}>
+                    <input
+                      type="checkbox"
+                      checked={useCornerCalibration}
+                      disabled={useAutoAlign}
+                      onChange={(e) => setUseCornerCalibration(e.target.checked)}
+                    />
+                    🎯 手動で4隅を指定（自動整列を OFF にしたときのみ）
+                  </label>
+                  {!useAutoAlign && useCornerCalibration && leftCorners && rightCorners && (
+                    <div className="corner-pair">
+                      <CornerCalibration
+                        image={left}
+                        label="左画像の4隅"
+                        value={leftCorners}
+                        onChange={setLeftCorners}
+                      />
+                      <CornerCalibration
+                        image={right}
+                        label="右画像の4隅"
+                        value={rightCorners}
+                        onChange={setRightCorners}
+                      />
+                    </div>
+                  )}
+                </div>
+                <RangeSelector
+                  left={left}
+                  right={right}
+                  value={cropRect}
+                  onChange={setCropRect}
+                />
+              </>
             )}
             <div className="actions">
               <button className="btn primary" disabled={!canRun} onClick={handleRun}>
