@@ -1,5 +1,5 @@
 import { rgbaToGray, resizeRgbaBilinear, warpPerspectiveRgba } from '../../lib/image';
-import { computeHomography, invert3x3, type Point } from '../../lib/homography';
+import { computeHomography, computeHomographyLSQ, invert3x3, type Point } from '../../lib/homography';
 
 /**
  * 自動整列（純 TS）。Harris コーナー検出 → 正規化相互相関マッチ → RANSAC ホモグラフィ推定。
@@ -14,8 +14,9 @@ import { computeHomography, invert3x3, type Point } from '../../lib/homography';
 
 const CORNER_COUNT = 300;
 const PATCH_RADIUS = 5; // 11x11 パッチ
-const RANSAC_ITER = 600;
-const RANSAC_THRESH = 4; // 解析解像度基準のピクセル
+const RANSAC_ITER = 800;
+const RANSAC_THRESH = 3; // 解析解像度基準のピクセル（refine 前）
+const RANSAC_REFINE_THRESH = 2; // refine 後の再インライア判定
 const NCC_THRESH = 0.6;
 
 export interface AutoAlignResult {
@@ -54,9 +55,9 @@ export function autoAlign(left: ImageData, right: ImageData): AutoAlignResult {
     };
   }
 
-  // RANSAC で整列解析空間でのホモグラフィを推定
-  const { H, inliers } = ransacHomography(matches);
-  if (inliers.length < 6 || !H) {
+  // RANSAC で粗い H を推定 → 全インライアで最小二乗 refine → 再判定でさらに絞る
+  const { H: Hcoarse, inliers: coarseInliers } = ransacHomography(matches);
+  if (coarseInliers.length < 6 || !Hcoarse) {
     return {
       alignedRight: right,
       inliers: 0,
@@ -64,6 +65,42 @@ export function autoAlign(left: ImageData, right: ImageData): AutoAlignResult {
       homography: [1, 0, 0, 0, 1, 0, 0, 0, 1],
       ok: false,
     };
+  }
+
+  // 粗インライアで LSQ refine
+  let H = Hcoarse;
+  let inliers = coarseInliers;
+  try {
+    const refined = computeHomographyLSQ(
+      coarseInliers.map((k) => matches[k][1]),
+      coarseInliers.map((k) => matches[k][0]),
+    );
+    // refine 後にもう一度 inlier を取り直す（厳しめ）
+    const refinedInliers: number[] = [];
+    const t2 = RANSAC_REFINE_THRESH * RANSAC_REFINE_THRESH;
+    for (let i = 0; i < matches.length; i++) {
+      const [l, r] = matches[i];
+      const w = refined[6] * r.x + refined[7] * r.y + refined[8];
+      if (Math.abs(w) < 1e-8) continue;
+      const px = (refined[0] * r.x + refined[1] * r.y + refined[2]) / w;
+      const py = (refined[3] * r.x + refined[4] * r.y + refined[5]) / w;
+      const dx = px - l.x;
+      const dy = py - l.y;
+      if (dx * dx + dy * dy < t2) refinedInliers.push(i);
+    }
+    // 最終 refine: 再インライアで LSQ を再度
+    if (refinedInliers.length >= 6) {
+      const final = computeHomographyLSQ(
+        refinedInliers.map((k) => matches[k][1]),
+        refinedInliers.map((k) => matches[k][0]),
+      );
+      H = final;
+      inliers = refinedInliers;
+    } else {
+      H = refined;
+    }
+  } catch {
+    // LSQ が数値的に失敗した場合は RANSAC の H をそのまま使う
   }
 
   // 解析空間 → 原寸スケールへ H を変換

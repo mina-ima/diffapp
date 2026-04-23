@@ -27,6 +27,45 @@ export function computeHomography(src: Point[], dst: Point[]): number[] {
 }
 
 /**
+ * n (>=4) 個の対応点から最小二乗ホモグラフィを求める。
+ * 4 点 RANSAC で得た H をインライア全体で refine するのに使う。
+ *
+ * 正規方程式 (AᵀA) h = Aᵀb を解く。n が大きいほど条件がよくなり、
+ * サブピクセル精度の整列が実現できる。
+ */
+export function computeHomographyLSQ(src: Point[], dst: Point[]): number[] {
+  const n = src.length;
+  if (n !== dst.length || n < 4) {
+    throw new Error('computeHomographyLSQ: need >=4 matched pairs');
+  }
+  const AtA: number[][] = Array.from({ length: 8 }, () => new Array(8).fill(0));
+  const Atb: number[] = new Array(8).fill(0);
+  const row = new Array(8);
+  for (let i = 0; i < n; i++) {
+    const { x, y } = src[i];
+    const { x: u, y: v } = dst[i];
+    // u 方程式
+    row[0] = x; row[1] = y; row[2] = 1;
+    row[3] = 0; row[4] = 0; row[5] = 0;
+    row[6] = -u * x; row[7] = -u * y;
+    for (let a = 0; a < 8; a++) {
+      Atb[a] += row[a] * u;
+      for (let b = 0; b < 8; b++) AtA[a][b] += row[a] * row[b];
+    }
+    // v 方程式
+    row[0] = 0; row[1] = 0; row[2] = 0;
+    row[3] = x; row[4] = y; row[5] = 1;
+    row[6] = -v * x; row[7] = -v * y;
+    for (let a = 0; a < 8; a++) {
+      Atb[a] += row[a] * v;
+      for (let b = 0; b < 8; b++) AtA[a][b] += row[a] * row[b];
+    }
+  }
+  const h = solveLinearSystem(AtA, Atb);
+  return [h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7], 1];
+}
+
+/**
  * 3x3 行列の逆行列。warpPerspective 用の逆変換行列を得るのに使う。
  */
 export function invert3x3(m: number[]): number[] {
