@@ -1,0 +1,30 @@
+{
+  "name": "diffapp-web-pro",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Diffapp Web Pro — ブラウザ内で動く高精度画像差分検査（OpenCV.js + ONNX Runtime Web）",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --port 4173",
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "fetch:models": "node scripts/fetch_models.mjs",
+    "fetch:opencv": "node scripts/fetch_opencv.mjs",
+    "fetch:assets": "node scripts/fetch_opencv.mjs && node scripts/fetch_models.mjs"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.4"
+  }
+}

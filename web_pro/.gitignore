@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-ssr
+.DS_Store
+*.log
+.vite
+public/models/*.onnx
+public/vendor/opencv.js
+coverage
+# tsc 生成物 (ソースは .ts のみ管理)
+src/**/*.js
+src/**/*.d.ts
+tsconfig.tsbuildinfo
+# Vercel
+.vercel
