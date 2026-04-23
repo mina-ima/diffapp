@@ -304,9 +304,15 @@ body {
 }
 
 .range-grid {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .range-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .range-image {
@@ -314,19 +320,17 @@ body {
   background: #111;
   border-radius: 6px;
   overflow: hidden;
-  flex-shrink: 0;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 50vh;
 }
 
-.range-image.interactive {
+.range-image.selecting {
   cursor: crosshair;
   user-select: none;
   touch-action: none;
-}
-
-.range-image canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .range-badge {
