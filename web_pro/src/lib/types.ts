@@ -69,8 +69,16 @@ export interface DetectedBox {
   channelScores: Partial<Record<Channel, number>>;
 }
 
+export interface DetectedPeak {
+  x: number;
+  y: number;
+  score: number;
+  channelScores: Partial<Record<Channel, number>>;
+}
+
 export interface InspectResult {
   boxes: DetectedBox[];
+  peaks: DetectedPeak[];
   heatmap: Float32Array;
   heatmapWidth: number;
   heatmapHeight: number;

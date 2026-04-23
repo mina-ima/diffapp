@@ -25,6 +25,7 @@ import {
 } from './postprocess/binarize';
 import { extractRegions, nms } from './postprocess/regions';
 import { detectByTileClusters } from './postprocess/tile_fallback';
+import { detectPeaks } from './postprocess/peaks';
 
 export async function runInspect(input: InspectInput): Promise<InspectResult> {
   const started = performance.now();
@@ -123,8 +124,24 @@ export async function runInspect(input: InspectInput): Promise<InspectResult> {
     channelScores,
   }));
 
+  //   (e) ピーク点検出（伝統的な間違い探し風の円表示用）
+  //       ヒートマップのピークで最も強い N 個を、最小距離 D 以上離して採用
+  const minDistance = Math.max(20, Math.round(Math.max(W, H) * 0.08));
+  const peaks = detectPeaks(
+    heatmap,
+    W,
+    H,
+    {
+      minDistance,
+      maxCount: input.settings.maxDetections,
+      minScore,
+    },
+    perChannel,
+  );
+
   return {
     boxes,
+    peaks,
     heatmap,
     heatmapWidth: W,
     heatmapHeight: H,

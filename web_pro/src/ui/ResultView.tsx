@@ -5,15 +5,15 @@ interface Props {
   result: InspectResult;
 }
 
-type Layer = 'detect' | 'heatmap' | 'msssim' | 'ciede' | 'edge' | 'left' | 'right';
+type Layer = 'detect-circle' | 'detect-box' | 'heatmap' | 'msssim' | 'ciede' | 'edge' | 'left' | 'right';
 
 export function ResultView({ result }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
-  const [layer, setLayer] = useState<Layer>('detect');
+  const [layer, setLayer] = useState<Layer>('detect-circle');
 
   const availableLayers = useMemo<Layer[]>(
-    () => ['detect', 'heatmap', 'left', 'right', 'msssim', 'ciede', 'edge'],
+    () => ['detect-circle', 'detect-box', 'heatmap', 'left', 'right', 'msssim', 'ciede', 'edge'],
     [],
   );
 
@@ -25,7 +25,7 @@ export function ResultView({ result }: Props) {
     const ctx = cv.getContext('2d');
     if (!ctx) return;
 
-    if (layer === 'left' || layer === 'detect') {
+    if (layer === 'left' || layer === 'detect-circle' || layer === 'detect-box') {
       ctx.putImageData(result.alignedLeft, 0, 0);
     } else if (layer === 'right') {
       ctx.putImageData(result.alignedRight, 0, 0);
@@ -44,7 +44,8 @@ export function ResultView({ result }: Props) {
     const octx = ov.getContext('2d');
     if (!octx) return;
     octx.clearRect(0, 0, ov.width, ov.height);
-    if (layer === 'detect') drawBoxes(octx, result);
+    if (layer === 'detect-box') drawBoxes(octx, result);
+    else if (layer === 'detect-circle') drawCircles(octx, result);
   }, [result, layer]);
 
   return (
@@ -65,7 +66,7 @@ export function ResultView({ result }: Props) {
         <canvas className="overlay" ref={overlayRef} />
       </div>
       <div className="stat-grid">
-        <div className="stat"><div>検出件数</div><div className="val">{result.boxes.length}</div></div>
+        <div className="stat"><div>検出件数</div><div className="val">{layer === 'detect-circle' ? result.peaks.length : result.boxes.length}</div></div>
         <div className="stat"><div>整列方式</div><div className="val">{result.stats.alignmentMethod}</div></div>
         <div className="stat">
           <div>平行移動</div>
@@ -100,7 +101,8 @@ export function ResultView({ result }: Props) {
 
 function layerLabel(l: Layer): string {
   return {
-    detect: '検出結果',
+    'detect-circle': '🔴 ピーク（円）',
+    'detect-box': '🔲 領域（枠）',
     heatmap: '総合ヒート',
     msssim: '構造',
     ciede: '色',
@@ -149,6 +151,30 @@ function viridis(v: number): [number, number, number] {
     }
   }
   return stops[stops.length - 1][1];
+}
+
+function drawCircles(ctx: CanvasRenderingContext2D, result: InspectResult) {
+  const radius = Math.max(18, Math.round(Math.max(result.heatmapWidth, result.heatmapHeight) * 0.065));
+  ctx.lineWidth = Math.max(2, result.heatmapWidth / 180);
+  ctx.font = `bold ${Math.max(11, result.heatmapWidth / 40)}px sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  result.peaks.forEach((p, idx) => {
+    ctx.strokeStyle = 'rgba(217, 44, 76, 0.95)';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    // 番号ラベル（円の左上）
+    const label = String(idx + 1);
+    const lx = p.x - radius * 0.7;
+    const ly = p.y - radius * 0.7;
+    ctx.fillStyle = 'rgba(217, 44, 76, 0.95)';
+    ctx.beginPath();
+    ctx.arc(lx, ly, parseInt(ctx.font, 10) * 0.85, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.fillText(label, lx, ly);
+  });
 }
 
 function drawBoxes(ctx: CanvasRenderingContext2D, result: InspectResult) {
