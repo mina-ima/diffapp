@@ -32,6 +32,7 @@ import { extractRegions, nms } from './postprocess/regions';
 import { detectByTileClusters } from './postprocess/tile_fallback';
 import { detectPeaks } from './postprocess/peaks';
 import { autoAlign } from './align/auto_align';
+import { locallyRefineRight } from './align/local_refine';
 
 export async function runInspect(input: InspectInput): Promise<InspectResult> {
   const started = performance.now();
@@ -98,7 +99,11 @@ export async function runInspect(input: InspectInput): Promise<InspectResult> {
 
   // 2) 解析空間に切り出し
   const analysisLeft = cropToAnalysis(leftImg, input.cropLeft, input.settings.analysisSize);
-  const analysisRight = cropToAnalysis(align.alignedRight, input.cropLeft, input.settings.analysisSize);
+  const analysisRightRaw = cropToAnalysis(align.alignedRight, input.cropLeft, input.settings.analysisSize);
+
+  // 2.5) ローカルブロックマッチングで残留サブピクセルずれを吸収
+  //     （ホモグラフィ後に残る非剛体ひずみ 1〜3px を各領域でスライド整合）
+  const analysisRight = locallyRefineRight(analysisLeft, analysisRightRaw);
 
   const { width: W, height: H } = analysisLeft;
   const lBuf = analysisLeft.data;
