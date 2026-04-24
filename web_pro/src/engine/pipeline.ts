@@ -43,6 +43,8 @@ export async function runInspect(input: InspectInput): Promise<InspectResult> {
   //   (c) それ以外は原寸のまま、右を左のサイズに揃える
   let leftImg: ImageData;
   let rightImg: ImageData;
+  // autoAlign 成功時は similarity 再探索をスキップ（カスケードで誤シフトが出るため）
+  let skipSimilarity = false;
   if (input.autoAlign) {
     const leftRawImg = makeImageData(input.leftRgba, input.leftWidth, input.leftHeight);
     const rightRawImg = makeImageData(input.rightRgba, input.rightWidth, input.rightHeight);
@@ -50,6 +52,7 @@ export async function runInspect(input: InspectInput): Promise<InspectResult> {
     leftImg = leftRawImg;
     if (aa.ok) {
       rightImg = aa.alignedRight;
+      skipSimilarity = true;
     } else {
       // フォールバック: 右を左サイズへ、照明ヒストマッチ、類似変換整列
       const rightResized = resizeOrSame(
@@ -93,17 +96,33 @@ export async function runInspect(input: InspectInput): Promise<InspectResult> {
     }
   }
 
-  // 1) 色合わせのみ軽く（ヒスト平坦化は色差を潰すので外す）→ フェーズ相関で整列
+  // 1) 色合わせのみ軽く（ヒスト平坦化は色差を潰すので外す）
   const rightNorm = matchLumaHistogramRgba(leftImg, rightImg);
-  const align = alignRightToLeft(leftImg, rightNorm);
+  // autoAlign 成功時は similarity 段をスキップ（ホモグラフィ > 類似変換なので
+  // 再探索はむしろ誤シフトを招く）。フォールバック時のみ類似変換で整列。
+  const align = skipSimilarity
+    ? {
+        alignedRight: rightNorm,
+        method: 'homography' as const,
+        inliers: 0,
+        shiftX: 0,
+        shiftY: 0,
+        rotationDeg: 0,
+        scale: 1,
+      }
+    : alignRightToLeft(leftImg, rightNorm);
 
   // 2) 解析空間に切り出し
   const analysisLeft = cropToAnalysis(leftImg, input.cropLeft, input.settings.analysisSize);
-  const analysisRightRaw = cropToAnalysis(align.alignedRight, input.cropLeft, input.settings.analysisSize);
+  const analysisRightAligned = cropToAnalysis(align.alignedRight, input.cropLeft, input.settings.analysisSize);
 
-  // 2.5) ローカルブロックマッチングで残留サブピクセルずれを吸収
-  //     （ホモグラフィ後に残る非剛体ひずみ 1〜3px を各領域でスライド整合）
-  const analysisRight = locallyRefineRight(analysisLeft, analysisRightRaw);
+  // 2.5) 差分計算専用の保守的な局所補正（表示には使わない）
+  //     autoAlign 成功時のみ、残留サブピクセルずれを小さく補正する。
+  //     「右（整列後）」の表示は analysisRightAligned（ホモグラフィ出力）を使い
+  //     ユーザー目視では素直な整列画像に見える。
+  const analysisRight = skipSimilarity
+    ? locallyRefineRight(analysisLeft, analysisRightAligned)
+    : analysisRightAligned;
 
   const { width: W, height: H } = analysisLeft;
   const lBuf = analysisLeft.data;
@@ -200,7 +219,7 @@ export async function runInspect(input: InspectInput): Promise<InspectResult> {
     heatmapWidth: W,
     heatmapHeight: H,
     alignedLeft: analysisLeft,
-    alignedRight: analysisRight,
+    alignedRight: analysisRightAligned,
     perChannel,
     stats: {
       alignmentInliers: align.inliers,
