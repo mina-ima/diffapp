@@ -10,6 +10,8 @@ coverage
 # tsc 生成物 (ソースは .ts のみ管理)
 src/**/*.js
 src/**/*.d.ts
+# 手書きの Vite グローバル型定義は例外として追跡
+!src/vite-env.d.ts
 tsconfig.tsbuildinfo
 # Vercel
 .vercel

@@ -73,8 +73,30 @@ export default function App() {
       <header className="app-header">
         <div style={{ width: 32, height: 32, background: 'var(--accent)', borderRadius: 8 }} />
         <div>
-          <h1>Diffapp Web Pro</h1>
-          <div className="sub">高精度画像差分検査 — 純ブラウザ内処理（外部依存なし）</div>
+          <h1>
+            Diffapp Web Pro{' '}
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--accent)',
+                background: '#eef2ff',
+                padding: '2px 8px',
+                borderRadius: 10,
+                marginLeft: 6,
+                verticalAlign: 'middle',
+              }}
+              title={`build ${__BUILD_TIME__}`}
+            >
+              v{__APP_VERSION__}
+            </span>
+          </h1>
+          <div className="sub">
+            高精度画像差分検査 — 純ブラウザ内処理（外部依存なし） ·{' '}
+            <span style={{ color: '#6b7280' }}>
+              build {__BUILD_TIME__.replace('T', ' ').slice(0, 16)} UTC
+            </span>
+          </div>
         </div>
       </header>
 
