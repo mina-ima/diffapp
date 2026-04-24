@@ -1,6 +1,6 @@
 {
   "name": "diffapp-web-pro",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "private": true,
   "type": "module",
   "description": "Diffapp Web Pro — ブラウザ内で動く高精度画像差分検査（OpenCV.js + ONNX Runtime Web）",

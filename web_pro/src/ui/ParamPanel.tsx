@@ -41,9 +41,9 @@ function areaWord(v: number): string {
   return '大きな違いだけ';
 }
 function resolutionWord(v: number): string {
-  if (v <= 384) return '速い・粗め';
+  if (v <= 384) return '早い・だいたい';
   if (v <= 576) return 'ふつう';
-  return '細かく・遅め';
+  return '遅い・しっかり';
 }
 
 export function ParamPanel({ value, onChange, onRun, canRun = false, loading = false }: Props) {
@@ -174,7 +174,7 @@ export function ParamPanel({ value, onChange, onRun, canRun = false, loading = f
           onChange={(e) => update({ analysisSize: Number(e.target.value) })}
         />
         <div style={{ fontSize: 11, color: 'var(--ink-sub)' }}>
-          ← 速いが粗め　　　細かく見るが遅い →
+          ← 早いがだいたい　　　遅いがしっかり →
         </div>
       </div>
 
