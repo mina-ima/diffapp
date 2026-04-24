@@ -42,44 +42,44 @@ export function ParamPanel({ value, onChange, onRun, canRun = false, loading = f
       <h2>検査設定</h2>
 
       <div className="row">
-        <label>入力モード</label>
+        <label>対象画像の種類</label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           <button
             className={`btn ${value.inputMode === 'digital' ? 'primary' : ''}`}
             style={{ minHeight: 0, padding: '6px 8px', fontSize: 12 }}
             onClick={() => applyMode('digital')}
           >
-            🖼️ デジタル
+            🖥️ スクショ / Web画像
           </button>
           <button
             className={`btn ${value.inputMode === 'photo' ? 'primary' : ''}`}
             style={{ minHeight: 0, padding: '6px 8px', fontSize: 12 }}
             onClick={() => applyMode('photo')}
           >
-            📷 撮影
+            📱 スマホ写真
           </button>
           <button
             className={`btn ${value.inputMode === 'photo-strict' ? 'primary' : ''}`}
             style={{ minHeight: 0, padding: '6px 8px', fontSize: 12 }}
             onClick={() => applyMode('photo-strict')}
           >
-            📷 撮影（厳格）
+            🎯 スマホ写真（厳密）
           </button>
           <button
             className={`btn ${value.inputMode === 'lineart' ? 'primary' : ''}`}
             style={{ minHeight: 0, padding: '6px 8px', fontSize: 12 }}
             onClick={() => applyMode('lineart')}
           >
-            ✏️ 線画
+            ✏️ マンガ / 線画
           </button>
         </div>
         <div style={{ fontSize: 11, color: 'var(--ink-sub)', marginTop: 4, lineHeight: 1.5 }}>
           {
             {
-              digital: 'スクショ・デジタル画像向けの標準プリセット',
-              photo: '撮影時の傾き・反射・ベゼル写り込みを抑える',
-              'photo-strict': '誤検出ゼロ優先。大きく明確な差分のみ拾う',
-              lineart: 'モノクロ線画専用。色を無視し線の位置ズレだけで比較',
+              digital: 'スクリーンショットや Web から保存した画像など、劣化のないデジタル画像向け',
+              photo: 'スマホで物やモニタを撮影した写真。手ブレ・反射・照明差を吸収',
+              'photo-strict': 'スマホ写真で誤検出ゼロ優先。大きく明確な差分だけを拾う',
+              lineart: 'マンガ・イラスト・手書き線画の間違い探し専用。色を無視し線のズレだけで比較',
             }[value.inputMode]
           }
         </div>
