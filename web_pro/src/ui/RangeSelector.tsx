@@ -16,12 +16,12 @@ interface Props {
 }
 
 /**
- * 左画像の上でドラッグして矩形を描画するコンポーネント。
+ * 左（基準）画像の上でドラッグして矩形を描画するコンポーネント。
  * 座標系: 左画像の原寸ピクセル。object-fit: contain による余白を考慮する。
+ * right は画像変更検知（選択モード解除）にだけ使い、表示はしない。
  */
 export function RangeSelector({ left, right, value, onChange }: Props) {
   const interactRef = useRef<HTMLDivElement>(null);
-  const rightRef = useRef<HTMLDivElement>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [dragCurrent, setDragCurrent] = useState<{ x: number; y: number } | null>(null);
   const [selectMode, setSelectMode] = useState(false);
@@ -133,56 +133,33 @@ export function RangeSelector({ left, right, value, onChange }: Props) {
         </div>
       </div>
 
-      <div className="range-grid">
-        <div
-          ref={interactRef}
-          className={`range-image${selectMode ? ' selecting' : ''}`}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-        >
-          <img
-            src={left.url}
-            alt="left"
-            draggable={false}
-            style={imageStyle}
+      <div
+        ref={interactRef}
+        className={`range-image${selectMode ? ' selecting' : ''}`}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
+        <img
+          src={left.url}
+          alt="left"
+          draggable={false}
+          style={imageStyle}
+        />
+        {overlayRect && (
+          <RectOverlay
+            containerRef={interactRef}
+            rect={overlayRect}
+            imgW={left.width}
+            imgH={left.height}
+            color="rgba(11, 91, 211, 0.9)"
+            fill="rgba(11, 91, 211, 0.12)"
+            label="範囲"
+            computeBox={computeDisplayBox}
           />
-          {overlayRect && (
-            <RectOverlay
-              containerRef={interactRef}
-              rect={overlayRect}
-              imgW={left.width}
-              imgH={left.height}
-              color="rgba(11, 91, 211, 0.9)"
-              fill="rgba(11, 91, 211, 0.12)"
-              label="範囲"
-              computeBox={computeDisplayBox}
-            />
-          )}
-          <span className="range-badge">L（この画像上でドラッグ）</span>
-        </div>
-        <div ref={rightRef} className="range-image">
-          <img
-            src={right.url}
-            alt="right"
-            draggable={false}
-            style={imageStyle}
-          />
-          {value && (
-            <RectOverlay
-              containerRef={rightRef}
-              rect={value}
-              imgW={left.width}
-              imgH={left.height}
-              color="rgba(217, 44, 76, 0.9)"
-              fill="rgba(217, 44, 76, 0.12)"
-              label="同座標"
-              computeBox={computeDisplayBox}
-            />
-          )}
-          <span className="range-badge">R</span>
-        </div>
+        )}
+        <span className="range-badge">L（この画像上でドラッグ）</span>
       </div>
       <div className="log">
         {value
