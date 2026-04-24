@@ -126,6 +126,21 @@ export function ParamPanel({ value, onChange, onRun, canRun = false, loading = f
 
       <div className="row">
         <label>
+          最大検出数
+          <span>{value.maxDetections} 箇所まで</span>
+        </label>
+        <input
+          type="range"
+          min={1}
+          max={50}
+          step={1}
+          value={value.maxDetections}
+          onChange={(e) => update({ maxDetections: Number(e.target.value) })}
+        />
+      </div>
+
+      <div className="row">
+        <label>
           違いの拾い方
           <span>{sensitivityWord(value.sensitivity)}</span>
         </label>
@@ -176,21 +191,6 @@ export function ParamPanel({ value, onChange, onRun, canRun = false, loading = f
         <div style={{ fontSize: 11, color: 'var(--ink-sub)' }}>
           ← 早いがだいたい　　　遅いがしっかり →
         </div>
-      </div>
-
-      <div className="row">
-        <label>
-          見つける違いの最大数
-          <span>{value.maxDetections} 箇所まで</span>
-        </label>
-        <input
-          type="range"
-          min={1}
-          max={50}
-          step={1}
-          value={value.maxDetections}
-          onChange={(e) => update({ maxDetections: Number(e.target.value) })}
-        />
       </div>
 
       <div className="row">
