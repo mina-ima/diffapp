@@ -18,6 +18,11 @@ const RANSAC_ITER = 800;
 const RANSAC_THRESH = 3; // 解析解像度基準のピクセル（refine 前）
 const RANSAC_REFINE_THRESH = 2; // refine 後の再インライア判定
 const NCC_THRESH = 0.6;
+// Lowe's ratio test: best NCC が 2nd best の ratio 倍以上なら採用（曖昧マッチを除外）
+const LOWE_RATIO = 0.85;
+// CLAHE: タイル数（8 なら 8x8 タイルに分割）+ クリップ上限（コントラストの暴走を防ぐ）
+const CLAHE_TILES = 8;
+const CLAHE_CLIP = 4.0;
 
 export interface AutoAlignResult {
   alignedRight: ImageData;
@@ -38,8 +43,9 @@ export function autoAlign(left: ImageData, right: ImageData): AutoAlignResult {
 
   const lRgba = scaleL === 1 ? left.data : resizeRgbaBilinear(left.data, left.width, left.height, lw, lh);
   const rRgba = scaleR === 1 ? right.data : resizeRgbaBilinear(right.data, right.width, right.height, rw, rh);
-  const lGray = rgbaToGray(lRgba, lw, lh);
-  const rGray = rgbaToGray(rRgba, rw, rh);
+  // 照明ムラを CLAHE で平準化してから特徴抽出（スマホ撮影で効く）
+  const lGray = claheGray(rgbaToGray(lRgba, lw, lh), lw, lh);
+  const rGray = claheGray(rgbaToGray(rRgba, rw, rh), rw, rh);
 
   const lCorners = harrisCorners(lGray, lw, lh, CORNER_COUNT);
   const rCorners = harrisCorners(rGray, rw, rh, CORNER_COUNT);
@@ -313,46 +319,63 @@ function mutualNccMatches(
   const rPatches = rCorners.map((p) => extractPatch(rGray, rw, rh, p.x, p.y));
 
   const lToR: number[] = new Array(lCorners.length).fill(-1);
-  const lToRScore: number[] = new Array(lCorners.length).fill(-1);
+  // 左→右: 各左コーナーで best / secondBest をトラックし、Lowe's ratio を満たすものだけ残す
   for (let i = 0; i < lCorners.length; i++) {
     const lp = lPatches[i];
     if (!lp) continue;
     let bestJ = -1;
-    let bestScore = NCC_THRESH;
+    let bestScore = -Infinity;
+    let secondScore = -Infinity;
     for (let j = 0; j < rCorners.length; j++) {
       const rp = rPatches[j];
       if (!rp) continue;
       const s = ncc(lp, rp);
       if (s > bestScore) {
+        secondScore = bestScore;
         bestScore = s;
         bestJ = j;
+      } else if (s > secondScore) {
+        secondScore = s;
       }
     }
-    lToR[i] = bestJ;
-    lToRScore[i] = bestScore;
+    if (bestScore < NCC_THRESH) continue;
+    // NCC は [-1,1] 類似度なので "距離" は (1-s)。Lowe: dist_best / dist_second < ratio
+    // ⇔ (1-best) / (1-second) < ratio。second==best 相当なら除外される
+    const dBest = 1 - bestScore;
+    const dSecond = 1 - Math.max(-1, secondScore);
+    if (dBest < dSecond * LOWE_RATIO) {
+      lToR[i] = bestJ;
+    }
   }
 
   const rToL: number[] = new Array(rCorners.length).fill(-1);
-  const rToLScore: number[] = new Array(rCorners.length).fill(-1);
   for (let j = 0; j < rCorners.length; j++) {
     const rp = rPatches[j];
     if (!rp) continue;
     let bestI = -1;
-    let bestScore = NCC_THRESH;
+    let bestScore = -Infinity;
+    let secondScore = -Infinity;
     for (let i = 0; i < lCorners.length; i++) {
       const lp = lPatches[i];
       if (!lp) continue;
       const s = ncc(lp, rp);
       if (s > bestScore) {
+        secondScore = bestScore;
         bestScore = s;
         bestI = i;
+      } else if (s > secondScore) {
+        secondScore = s;
       }
     }
-    rToL[j] = bestI;
-    rToLScore[j] = bestScore;
+    if (bestScore < NCC_THRESH) continue;
+    const dBest = 1 - bestScore;
+    const dSecond = 1 - Math.max(-1, secondScore);
+    if (dBest < dSecond * LOWE_RATIO) {
+      rToL[j] = bestI;
+    }
   }
 
-  // 相互チェック: i の最良が j, かつ j の最良が i ならペア採用
+  // 相互チェック: i の最良が j, かつ j の最良が i ならペア採用（ratio test 通過者のみ）
   const pairs: Array<[Point, Point]> = [];
   for (let i = 0; i < lCorners.length; i++) {
     const j = lToR[i];
@@ -361,6 +384,90 @@ function mutualNccMatches(
     pairs.push([lCorners[i], rCorners[j]]);
   }
   return pairs;
+}
+
+// -------- CLAHE (Contrast Limited Adaptive Histogram Equalization) --------
+// タイル分割して各タイルのヒストグラムを正規化 → 双一次補間で段差を消す。
+// 照明ムラのある撮影画像でも Harris コーナーが平等に検出できるようになる。
+function claheGray(src: Float32Array, w: number, h: number): Float32Array {
+  const TILES = CLAHE_TILES;
+  const BINS = 64; // 256 階調を 64 段に圧縮（ヒストグラムが密になって速い）
+  const tileW = Math.max(1, Math.floor(w / TILES));
+  const tileH = Math.max(1, Math.floor(h / TILES));
+  // 各タイルのマッピング（元 bin → 出力 bin）を構築
+  const maps: Float32Array[] = new Array(TILES * TILES);
+  const pixelsPerTile = tileW * tileH;
+  const clipLimit = Math.max(1, Math.round((CLAHE_CLIP * pixelsPerTile) / BINS));
+  for (let ty = 0; ty < TILES; ty++) {
+    const y0 = ty * tileH;
+    const y1 = ty === TILES - 1 ? h : y0 + tileH;
+    for (let tx = 0; tx < TILES; tx++) {
+      const x0 = tx * tileW;
+      const x1 = tx === TILES - 1 ? w : x0 + tileW;
+      const hist = new Int32Array(BINS);
+      for (let yy = y0; yy < y1; yy++) {
+        const row = yy * w;
+        for (let xx = x0; xx < x1; xx++) {
+          const v = src[row + xx];
+          let b = Math.floor((v * BINS) / 256);
+          if (b < 0) b = 0;
+          if (b >= BINS) b = BINS - 1;
+          hist[b]++;
+        }
+      }
+      // ヒストグラムをクリップしてエクセスを均等再配分
+      let excess = 0;
+      for (let b = 0; b < BINS; b++) {
+        if (hist[b] > clipLimit) {
+          excess += hist[b] - clipLimit;
+          hist[b] = clipLimit;
+        }
+      }
+      const per = Math.floor(excess / BINS);
+      for (let b = 0; b < BINS; b++) hist[b] += per;
+      let remain = excess - per * BINS;
+      for (let b = 0; b < BINS && remain > 0; b++, remain--) hist[b]++;
+      // CDF → 0..255 マッピング
+      const total = (y1 - y0) * (x1 - x0);
+      const map = new Float32Array(BINS);
+      let acc = 0;
+      for (let b = 0; b < BINS; b++) {
+        acc += hist[b];
+        map[b] = (acc * 255) / total;
+      }
+      maps[ty * TILES + tx] = map;
+    }
+  }
+  // タイル 4 近傍のマッピングを双一次補間して各ピクセルに適用
+  const out = new Float32Array(src.length);
+  for (let y = 0; y < h; y++) {
+    const fy = y / tileH - 0.5;
+    let ty0 = Math.floor(fy);
+    let ty1 = ty0 + 1;
+    const wy = fy - ty0;
+    if (ty0 < 0) ty0 = 0;
+    if (ty1 > TILES - 1) ty1 = TILES - 1;
+    for (let x = 0; x < w; x++) {
+      const fx = x / tileW - 0.5;
+      let tx0 = Math.floor(fx);
+      let tx1 = tx0 + 1;
+      const wx = fx - tx0;
+      if (tx0 < 0) tx0 = 0;
+      if (tx1 > TILES - 1) tx1 = TILES - 1;
+      const v = src[y * w + x];
+      let b = Math.floor((v * BINS) / 256);
+      if (b < 0) b = 0;
+      if (b >= BINS) b = BINS - 1;
+      const m00 = maps[ty0 * TILES + tx0][b];
+      const m10 = maps[ty0 * TILES + tx1][b];
+      const m01 = maps[ty1 * TILES + tx0][b];
+      const m11 = maps[ty1 * TILES + tx1][b];
+      const mx0 = m00 * (1 - wx) + m10 * wx;
+      const mx1 = m01 * (1 - wx) + m11 * wx;
+      out[y * w + x] = mx0 * (1 - wy) + mx1 * wy;
+    }
+  }
+  return out;
 }
 
 // -------- RANSAC ホモグラフィ --------
