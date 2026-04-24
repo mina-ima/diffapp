@@ -15,10 +15,36 @@ interface Props {
 }
 
 const CHANNEL_LABELS: Record<Channel, string> = {
-  msssim: 'MS-SSIM（構造）',
-  ciede: 'CIEDE2000（色）',
-  edge: 'Sobel（エッジ）',
+  msssim: '形・構造の違い',
+  ciede: '色の違い',
+  edge: '輪郭・線の違い',
 };
+
+const CHANNEL_HINTS: Record<Channel, string> = {
+  msssim: '物が増えた／減った／変形した違いに強い',
+  ciede: '塗り色や明度が変わった違いに強い',
+  edge: '線の太さ／輪郭のズレに強い',
+};
+
+/** スライダー値を言葉のラベルに変換してわかりやすく表示する */
+function sensitivityWord(v: number): string {
+  if (v < 0.25) return '確実な違いだけ';
+  if (v < 0.5) return 'やや控えめ';
+  if (v <= 0.6) return 'ふつう';
+  if (v < 0.8) return '少し細かめ';
+  return '細かい違いも拾う';
+}
+function areaWord(v: number): string {
+  if (v < 0.15) return 'ごく小さな違いから';
+  if (v < 0.5) return '小さな違いから';
+  if (v < 1.5) return 'そこそこの違いから';
+  return '大きな違いだけ';
+}
+function resolutionWord(v: number): string {
+  if (v <= 384) return '速い・粗め';
+  if (v <= 576) return 'ふつう';
+  return '細かく・遅め';
+}
 
 export function ParamPanel({ value, onChange, onRun, canRun = false, loading = false }: Props) {
   const update = (patch: Partial<InspectSettings>) =>
@@ -100,7 +126,8 @@ export function ParamPanel({ value, onChange, onRun, canRun = false, loading = f
 
       <div className="row">
         <label>
-          感度 <span>{value.sensitivity.toFixed(2)}（スコア下限 {Math.max(0.1, Math.min(0.95, 1 - value.sensitivity)).toFixed(2)}）</span>
+          違いの拾い方
+          <span>{sensitivityWord(value.sensitivity)}</span>
         </label>
         <input
           type="range"
@@ -111,14 +138,14 @@ export function ParamPanel({ value, onChange, onRun, canRun = false, loading = f
           onChange={(e) => update({ sensitivity: Number(e.target.value) })}
         />
         <div style={{ fontSize: 11, color: 'var(--ink-sub)' }}>
-          低：厳しく絞る（少数精鋭） ⟷ 高：広く拾う（取りこぼし減）
+          ← 確実な違いだけ　　　細かい違いも拾う →
         </div>
       </div>
 
       <div className="row">
         <label>
-          最小検出サイズ（面積%）
-          <span>{value.minAreaPercent.toFixed(2)}%</span>
+          見つけたい違いの大きさ
+          <span>{areaWord(value.minAreaPercent)}</span>
         </label>
         <input
           type="range"
@@ -128,10 +155,16 @@ export function ParamPanel({ value, onChange, onRun, canRun = false, loading = f
           value={value.minAreaPercent}
           onChange={(e) => update({ minAreaPercent: Number(e.target.value) })}
         />
+        <div style={{ fontSize: 11, color: 'var(--ink-sub)' }}>
+          ← 小さな違いから検出　　　大きな違いだけ検出 →
+        </div>
       </div>
 
       <div className="row">
-        <label>解析解像度 <span>{value.analysisSize}px</span></label>
+        <label>
+          処理の細かさ
+          <span>{resolutionWord(value.analysisSize)}</span>
+        </label>
         <input
           type="range"
           min={256}
@@ -140,10 +173,16 @@ export function ParamPanel({ value, onChange, onRun, canRun = false, loading = f
           value={value.analysisSize}
           onChange={(e) => update({ analysisSize: Number(e.target.value) })}
         />
+        <div style={{ fontSize: 11, color: 'var(--ink-sub)' }}>
+          ← 速いが粗め　　　細かく見るが遅い →
+        </div>
       </div>
 
       <div className="row">
-        <label>最大検出数 <span>{value.maxDetections}</span></label>
+        <label>
+          見つける違いの最大数
+          <span>{value.maxDetections} 箇所まで</span>
+        </label>
         <input
           type="range"
           min={1}
@@ -155,9 +194,12 @@ export function ParamPanel({ value, onChange, onRun, canRun = false, loading = f
       </div>
 
       <div className="row">
-        <label>チャネル重み</label>
+        <label>何を重視して比べるか</label>
+        <div style={{ fontSize: 11, color: 'var(--ink-sub)', marginBottom: 6 }}>
+          3つを組み合わせて差分スコアを計算します（0 にすると無視）
+        </div>
         {(Object.keys(CHANNEL_LABELS) as Channel[]).map((k) => (
-          <div key={k} style={{ marginTop: 4 }}>
+          <div key={k} style={{ marginTop: 8 }}>
             <label style={{ fontSize: 12 }}>
               <span>{CHANNEL_LABELS[k]}</span>
               <span>{value.weights[k].toFixed(2)}</span>
@@ -170,6 +212,9 @@ export function ParamPanel({ value, onChange, onRun, canRun = false, loading = f
               value={value.weights[k]}
               onChange={(e) => updateWeight(k, Number(e.target.value))}
             />
+            <div style={{ fontSize: 10, color: 'var(--ink-sub)', marginTop: 2 }}>
+              {CHANNEL_HINTS[k]}
+            </div>
           </div>
         ))}
       </div>
