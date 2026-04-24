@@ -158,6 +158,21 @@ export async function runInspect(input: InspectInput): Promise<InspectResult> {
     if (!validMask[i]) blurred[i] = 0;
   }
 
+  // 画像端は整列残差・クロップ境界で偽陽性が出やすいので、
+  // 外周 6% を raised-cosine で減衰させる（中央ほど信頼できる）
+  const borderPx = Math.round(Math.min(W, H) * 0.06);
+  if (borderPx > 0) {
+    for (let y = 0; y < H; y++) {
+      const dy = Math.min(y, H - 1 - y);
+      const ty = dy >= borderPx ? 1 : 0.5 - 0.5 * Math.cos((dy / borderPx) * Math.PI);
+      for (let x = 0; x < W; x++) {
+        const dx = Math.min(x, W - 1 - x);
+        const tx = dx >= borderPx ? 1 : 0.5 - 0.5 * Math.cos((dx / borderPx) * Math.PI);
+        blurred[y * W + x] *= tx * ty;
+      }
+    }
+  }
+
   const heatmap = normalizeFloat(blurred);
 
   // 4) 後処理 → 検出矩形
@@ -199,7 +214,9 @@ export async function runInspect(input: InspectInput): Promise<InspectResult> {
 
   //   (e) ピーク点検出（伝統的な間違い探し風の円表示用）
   //       ヒートマップのピークで最も強い N 個を、最小距離 D 以上離して採用
-  const minDistance = Math.max(20, Math.round(Math.max(W, H) * 0.08));
+  //       間違い探しの「答え」は 60〜120px 相当の広がりを持つことが多いので
+  //       minDistance を 12% に拡げ、同じ答えに複数ピークが被らないようにする
+  const minDistance = Math.max(30, Math.round(Math.max(W, H) * 0.12));
   const peaks = detectPeaks(
     heatmap,
     W,
