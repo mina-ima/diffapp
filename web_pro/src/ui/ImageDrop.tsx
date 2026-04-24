@@ -14,6 +14,8 @@ interface Props {
   badge: string;
   value: LoadedImage | null;
   onChange: (image: LoadedImage | null) => void;
+  /** カメラ撮影で画像が取り込まれたときに呼ばれる。親が撮影モードへ切り替えるのに使う */
+  onCameraUsed?: () => void;
   maxSide?: number;
 }
 
@@ -48,7 +50,7 @@ async function fileToLoaded(file: File, maxSide: number): Promise<LoadedImage> {
   };
 }
 
-export function ImageDrop({ label, badge, value, onChange, maxSide = MAX_SIDE_DEFAULT }: Props) {
+export function ImageDrop({ label, badge, value, onChange, onCameraUsed, maxSide = MAX_SIDE_DEFAULT }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -138,6 +140,7 @@ export function ImageDrop({ label, badge, value, onChange, maxSide = MAX_SIDE_DE
           onCapture={(file) => {
             setCameraOpen(false);
             handleFile(file);
+            onCameraUsed?.();
           }}
           onClose={() => setCameraOpen(false)}
         />

@@ -4,7 +4,7 @@ import { ParamPanel } from './ui/ParamPanel';
 import { ResultView } from './ui/ResultView';
 import { RangeSelector, type CropRect } from './ui/RangeSelector';
 import { CornerCalibration, defaultCorners, type Corners } from './ui/CornerCalibration';
-import { DEFAULT_SETTINGS, type InspectResult, type InspectSettings } from './lib/types';
+import { DEFAULT_SETTINGS, PHOTO_MODE_SETTINGS, type InspectResult, type InspectSettings } from './lib/types';
 import { runInspect } from './engine/pipeline';
 
 export default function App() {
@@ -37,6 +37,15 @@ export default function App() {
     () => !!left && !!right && !loading,
     [left, right, loading],
   );
+
+  /** カメラで撮影したときに、まだ初期値（デジタル）のままならスマホ写真モードに切り替える */
+  const handleCameraUsed = useCallback(() => {
+    setSettings((s) =>
+      s.inputMode === 'digital'
+        ? { ...s, ...PHOTO_MODE_SETTINGS, inputMode: 'photo' }
+        : s,
+    );
+  }, []);
 
   const handleRun = useCallback(async () => {
     if (!left || !right) return;
@@ -104,8 +113,8 @@ export default function App() {
         <div>
           <div className="card">
             <div className="image-pair">
-              <ImageDrop label="左画像（基準）" badge="L" value={left} onChange={setLeft} />
-              <ImageDrop label="右画像（比較対象）" badge="R" value={right} onChange={setRight} />
+              <ImageDrop label="左画像（基準）" badge="L" value={left} onChange={setLeft} onCameraUsed={handleCameraUsed} />
+              <ImageDrop label="右画像（比較対象）" badge="R" value={right} onChange={setRight} onCameraUsed={handleCameraUsed} />
             </div>
             {left && right && (
               <>
