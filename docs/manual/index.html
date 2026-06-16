@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diffapp Web Pro 取扱説明書</title>
+<style>
+:root{--fg:#1a1a1a;--muted:#666;--accent:#2563eb;--bg:#fff;--code:#f4f4f5;--border:#e5e7eb}*{box-sizing:border-box}body{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;line-height:1.8;color:var(--fg);background:var(--bg);max-width:820px;margin:0 auto;padding:24px 18px}h1{font-size:1.7rem;border-bottom:3px solid var(--accent);padding-bottom:.4em;margin-top:0}h2{font-size:1.3rem;margin-top:2em;border-left:5px solid var(--accent);padding-left:.5em}h3{font-size:1.1rem;margin-top:1.5em}code{background:var(--code);padding:.15em .4em;border-radius:4px;font-size:.9em}pre{background:var(--code);padding:14px;border-radius:8px;overflow-x:auto}pre code{background:none;padding:0}table{border-collapse:collapse;width:100%;margin:1em 0}th,td{border:1px solid var(--border);padding:8px 10px;text-align:left}th{background:#f8fafc}blockquote{border-left:4px solid var(--accent);background:#f0f6ff;margin:1em 0;padding:.6em 1em;color:#334}a{color:var(--accent)}footer{margin-top:3em;padding-top:1em;border-top:1px solid var(--border);color:var(--muted);font-size:.85rem}@media(max-width:600px){body{padding:16px 12px}h1{font-size:1.4rem}}
+</style>
+</head>
+<body>
+<h1>Diffapp Web Pro 取扱説明書</h1>
+<blockquote>2枚の画像をブラウザで比較し、違いがある場所を自動で見つけて印（矩形）で示す、高精度の画像差分検査アプリです。画像は外部に送信されず、すべてブラウザ内で処理します。</blockquote>
+
+<h2>このアプリでできること</h2>
+<ul>
+<li>左右2枚の画像を読み込み、その差分（違い）を自動検出します。</li>
+<li>違いのある箇所をヒートマップと矩形（検出枠）で分かりやすく表示します。</li>
+<li>撮影位置や明るさ・色味が多少ずれていても、自動で位置合わせ・色補正してから比較します。</li>
+<li>画像を外部サーバーに送らないため、プライバシーを守れます（完全オフライン動作も可能）。</li>
+</ul>
+
+<h2>想定ユーザー・利用シーン</h2>
+<ul>
+<li>製品・基板・印刷物などの「良品」と「検査対象」を見比べて違いを探したい品質検査の担当者。</li>
+<li>ビフォー／アフターの画像から変化点を素早く見つけたい方。</li>
+<li>機密性の高い画像を外部に出さずに差分チェックしたい方。</li>
+<li>サーバー費用をかけずにブラウザだけで使いたい方。</li>
+</ul>
+
+<h2>動作環境・前提</h2>
+<ul>
+<li>PCまたはスマートフォンのモダンWebブラウザ（最新の Chrome / Edge / Safari など）。</li>
+<li>高精度モード（DINOv2 を使う意味的差分）には、ONNXモデルの読み込みが必要です。モデルが無くても残り3チャネルで動作します。</li>
+<li>マルチスレッドWASMを使う場合、配信側に特定のHTTPヘッダ（COOP/COEP）が必要です（開発サーバーでは設定済み）。</li>
+</ul>
+
+<h2>セットアップ</h2>
+<p>利用者は配信されているWebアプリにアクセスするだけです。</p>
+<p>ローカルで動かす・開発する場合:</p>
+<pre><code>cd web_pro
+pnpm install
+pnpm fetch:models   # DINOv2-small ONNX を取得（任意・約90MB。失敗してもDINO以外は動作）
+pnpm dev            # http://localhost:5173</code></pre>
+
+<h2>使い方（ステップbyステップ）</h2>
+<ol>
+<li>アプリを開きます。</li>
+<li>比較したい2枚の画像（左画像・右画像）を、それぞれの枠にドラッグ＆ドロップ（または選択）します。</li>
+<li>必要に応じて検査範囲をクロップ（範囲指定）します。</li>
+<li>パラメータ（感度・最小検出サイズ・解析解像度・最大検出数・チャネル重み）を調整します。最初は既定値のままで構いません。</li>
+<li>検査を実行すると、内部で位置合わせ→色補正→4種類の差分計算→合成→検出枠抽出が行われます。</li>
+<li>結果として、違いのある箇所がヒートマップと矩形で表示されます。スコアの高い順に上位N件が示されます。</li>
+<li>検出が多すぎる／少なすぎる場合は「感度」や「最小検出サイズ」を調整して再実行します。</li>
+</ol>
+
+<h2>主な機能</h2>
+<ul>
+<li>4チャネル差分検出（重み付き合成）:
+  <ol>
+  <li>MS-SSIM … 構造的な差分（ノイズに強い）</li>
+  <li>CIEDE2000 … 知覚的な色差</li>
+  <li>DINOv2 … 意味的差分（照明・ノイズに頑健）</li>
+  <li>Canny + 距離変換 … エッジ位置のズレ</li>
+  </ol>
+</li>
+<li>自動整列: OpenCV.js による ORB + RANSAC ホモグラフィ整列、CLAHE 照明均一化、ヒストグラムマッチ色正規化。</li>
+<li>後処理: Otsu二値化 → モルフォロジー → 連結成分 → NMS で検出枠を抽出。</li>
+<li>調整可能なパラメータ: 感度（既定0.5）、最小検出サイズ（既定0.4%）、解析解像度（既定512px）、最大検出数（既定20）、チャネル重み。</li>
+<li>PWA対応: Service Worker で完全オフライン化、ホーム画面に追加可能。</li>
+<li>完全ローカル処理: 画像の外部送信・外部API呼び出しは一切なし。</li>
+</ul>
+
+<h2>よくある質問・トラブルシューティング</h2>
+<ul>
+<li><strong>Q: 違いを正しく検出してくれません。</strong><br>A: 「感度」を上げると拾いやすく、下げると拾いにくくなります。また「最小検出サイズ」を小さくすると細かい違いも検出します。位置がずれている場合は自動整列されますが、極端なズレでは精度が落ちることがあります。</li>
+<li><strong>Q: 高精度モード（DINO）が使えません。</strong><br>A: ONNXモデル（約90MB）の取得に失敗している可能性があります。モデルが無くても残り3チャネルで動作し、UI上でDINOは自動的に無効化されます。</li>
+<li><strong>Q: 処理が重いです。</strong><br>A: 「解析解像度」を下げると軽くなります。大きいほど細部に強い反面、処理が重くなります。</li>
+<li><strong>Q: 画像はどこかに送られますか。</strong><br>A: 送られません。すべてブラウザ内で処理され、外部通信は行いません。</li>
+</ul>
+
+<h2>開発者向けメモ（技術スタック/起動コマンド/ビルド/デプロイ先・本番URL）</h2>
+<ul>
+<li>場所: 本番Webアプリの実体は <code>web_pro/</code>（パッケージ名 <code>diffapp-web-pro</code>, v0.3.10）。リポジトリ直下には Flutter版（旧）の資料も残ります。現在のブランチは <code>web-pro</code>。</li>
+<li>技術スタック: フロント=React 18 + Vite + TypeScript / 画像処理=OpenCV.js（ORB/RANSAC/CLAHE/ヒストグラムマッチ）/ 推論=ONNX Runtime Web（WASM + SIMD）で DINOv2-small を実行 / PWA=Service Worker</li>
+<li>必要なHTTPヘッダ（マルチスレッドWASM使用時）:
+<pre><code>Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp</code></pre></li>
+<li>起動・ビルドコマンド（<code>web_pro/</code> 内）:
+<pre><code># 開発（http://localhost:5173）
+pnpm dev
+# モデル取得
+pnpm fetch:models   # または pnpm fetch:assets
+# ビルド（tsc -b &amp;&amp; vite build）
+pnpm build
+# プレビュー
+pnpm preview
+# テスト / 型チェック
+pnpm test
+pnpm typecheck</code></pre></li>
+<li>デプロイ先: <code>dist/</code> を静的ホスティング（Cloudflare Pages / Vercel / GitHub Pages 等の無料枠）に配置。</li>
+<li>本番URL: 未確認（公開URLは本リポジトリからは特定できませんでした。v0.3.10 はデプロイ済みとの記録あり）。</li>
+<li>状態: デプロイ済み（v0.3.10）。リポジトリには未コミットの作業中変更が多く含まれるため、本マニュアル以外には触れていません。</li>
+</ul>
+
+<footer>本書は自動生成された取扱説明書です。</footer>
+</body>
+</html>
